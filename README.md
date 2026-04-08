@@ -1,72 +1,45 @@
 # nix-storage-plugin
 
-Prototype Additional Layer Store for Podman/containers-storage that serves nix-snapshotter-style images, including `nix:0/nix/store/*.tar` OCI archives.
+[`nix-snapshotter`](https://github.com/pdtpartners/nix-snapshotter) but for Podman, CRI-O, and any other `container-libs/storage` based tools.
 
-## What it does
+## Installation
 
-- mounts a single FUSE Additional Layer Store at `:ref`
-- resolves local images lazily from `containers-storage`
-- serves `nix:0/nix/store/*.tar` via a tiny local registry adapter
-- materializes layers from the original OCI archive for `nix:0/...` refs
-- only exposes nix-backed images through the ALS; non-nix images are skipped
+(NixOS module coming soon!)
 
-## Current commands
+Clone the `als-first` branch of [my fork of `container-libs`](https://github.com/bitbloxhub/container-libs).
 
-```bash
-cargo run -- mount-store --mount-path /tmp/nsp-layer-store
-cargo run -- serve-image --bind 127.0.0.1:45123
+Build Podman/CRI-O/your other tool with the following appended to `go.mod`:
+```gomod
+replace (
+	go.podman.io/image/v5 => <clone of container-libs>/image
+	go.podman.io/storage => <clone of container-libs>/storage
+)
 ```
 
-## Podman storage config
+Then start both of the following processes:
+```
+nix run .#default -- mount-store
+nix run .#default -- serve-image
+```
 
-Example `/tmp/nsp-storage.conf`:
+`serve-image` runs on port 45123 by default, you may want to change this via the `--bind` flag if you have multiple users.
 
+Add the following to `~/.config/containers/storage.conf` (`/etc/containers/storage.conf` if system-wide):
 ```toml
-[storage]
-driver = "overlay"
-runroot = "/tmp/nsp-runroot"
-graphroot = "/tmp/nsp-graphroot"
-
 [storage.options]
-additionallayerstores = ["/tmp/nsp-layer-store:ref"]
+additionallayerstores = ["/run/user/{uid}/nix-storage-plugin/layer-store:ref"]
 ```
 
-Use it with:
-
-```bash
-CONTAINERS_STORAGE_CONF=/tmp/nsp-storage.conf podman ...
-```
-
-## Registry alias config
-
-Example `/tmp/nsp-registries.conf`:
-
+Add the following to `~/.config/containers/registries.conf` (`/etc/containers/registries.conf` if system-wide):
 ```toml
 [[registry]]
 prefix = "nix:0"
-location = "127.0.0.1:45123"
+location = "127.0.0.1:45123" # Or whatever custom port you used
 insecure = true
 ```
 
-Use it with:
+Then you can run whatever `nix-snapshotter` images you want!
 
-```bash
-CONTAINERS_REGISTRIES_CONF=/tmp/nsp-registries.conf podman ...
-```
+## Building images
 
-## Example
-
-```bash
-CONTAINERS_STORAGE_CONF=/tmp/nsp-storage.conf \
-CONTAINERS_REGISTRIES_CONF=/tmp/nsp-registries.conf \
-~/podman/bin/podman run --rm -it \
-	nix:0/nix/store/<hash>-nix-image-redis.tar
-```
-
-## Notes
-
-- root listing in the ALS mount is lazy and only shows refs resolved during the current mount lifetime
-- `nix:0` is just a registry alias, not a custom image transport
-- the local registry adapter is intended for arbitrary `/nix/store/*.tar` OCI archives
-
-For implementation constraints and current engineering direction, see `AGENTS.md`.
+Just use [`nix-snapshotter`](https://github.pdtpartners/nix-snapshotter) for this.
