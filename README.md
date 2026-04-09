@@ -24,10 +24,16 @@ nix run .#default -- serve-image
 
 `serve-image` runs on port 45123 by default, you may want to change this via the `--bind` flag if you have multiple users.
 
-Add the following to `~/.config/containers/storage.conf` (`/etc/containers/storage.conf` if system-wide):
+Add the following to `~/.config/containers/storage.conf` (`/etc/containers/storage.conf` if system-wide), matching whatever path you pass to `mount-store`:
+
+Rootless:
 ```toml
-[storage.options]
-additionallayerstores = ["/run/user/{uid}/nix-storage-plugin/layer-store:ref"]
+additionallayerstores = ["/run/user/1000/nix-storage-plugin/layer-store:ref"]
+```
+
+Rootful or system-service:
+```toml
+additionallayerstores = ["/run/nix-storage-plugin/layer-store:ref"]
 ```
 
 Add the following to `~/.config/containers/registries.conf` (`/etc/containers/registries.conf` if system-wide):

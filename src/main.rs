@@ -1,3 +1,4 @@
+use std::env;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -23,13 +24,28 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
 	MountStore {
-		#[arg(long, default_value_os_t = (|| format!("/run/user/{}/nix-storage-plugin/layer-store", nix::unistd::getuid()).into())())]
+		#[arg(long, default_value_os_t = default_mount_path())]
 		mount_path: PathBuf,
 	},
 	ServeImage {
 		#[arg(long, default_value = DEFAULT_REGISTRY_BIND_ADDR)]
 		bind: SocketAddr,
 	},
+}
+
+fn default_mount_path() -> PathBuf {
+	if let Some(runtime_dir) = env::var_os("XDG_RUNTIME_DIR") {
+		return PathBuf::from(runtime_dir).join("nix-storage-plugin/layer-store");
+	}
+
+	if nix::unistd::getuid().is_root() {
+		return PathBuf::from("/run/nix-storage-plugin/layer-store");
+	}
+
+	PathBuf::from(format!(
+		"/run/user/{}/nix-storage-plugin/layer-store",
+		nix::unistd::getuid()
+	))
 }
 
 fn main() -> Result<(), NixStoragePluginError> {
