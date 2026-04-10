@@ -2,13 +2,36 @@
 
 [`nix-snapshotter`](https://github.com/pdtpartners/nix-snapshotter) but for Podman, CRI-O, and any other `container-libs/storage` based tools.
 
-## Installation
+## NixOS
 
-(NixOS module coming soon!)
+Use overlay plus module:
 
-Clone the `als-first` branch of [my fork of `container-libs`](https://github.com/bitbloxhub/container-libs).
+```nix
+{
+  nixpkgs.overlays = [ nix-storage-plugin.overlays.default ];
 
-Build Podman/CRI-O/your other tool with the following appended to `go.mod`:
+  imports = [ nix-storage-plugin.nixosModules.default ];
+
+  services.nix-storage-plugin.enable = true;
+}
+```
+
+Main options:
+
+```nix
+services.nix-storage-plugin = {
+  mountPath = "/run/nix-storage-plugin/layer-store";
+  bindAddress = "127.0.0.1";
+  port = 45123;
+  manageStorageConfig = true;
+  manageRegistryAlias = true;
+};
+```
+
+## Manual patching builds
+
+If not using overlay, patch your container consumer against [`bitbloxhub/container-libs`](https://github.com/bitbloxhub/container-libs) `als-first`:
+
 ```gomod
 replace (
 	go.podman.io/image/v5 => <clone of container-libs>/image
@@ -16,36 +39,20 @@ replace (
 )
 ```
 
-Then start both of the following processes:
-```
+Run services with:
+
+```bash
 nix run .#default -- mount-store
 nix run .#default -- serve-image
 ```
 
-`serve-image` runs on port 45123 by default, you may want to change this via the `--bind` flag if you have multiple users.
+Then you can run `nix-snapshotter`-compatible images, including:
 
-Add the following to `~/.config/containers/storage.conf` (`/etc/containers/storage.conf` if system-wide), matching whatever path you pass to `mount-store`:
-
-Rootless:
-```toml
-additionallayerstores = ["/run/user/1000/nix-storage-plugin/layer-store:ref"]
+```bash
+podman run ghcr.io/pdtpartners/redis-shell:latest
+podman run nix:0/nix/store/<hash>-nix-image-redis.tar
 ```
-
-Rootful or system-service:
-```toml
-additionallayerstores = ["/run/nix-storage-plugin/layer-store:ref"]
-```
-
-Add the following to `~/.config/containers/registries.conf` (`/etc/containers/registries.conf` if system-wide):
-```toml
-[[registry]]
-prefix = "nix:0"
-location = "127.0.0.1:45123" # Or whatever custom port you used
-insecure = true
-```
-
-Then you can run whatever `nix-snapshotter` images you want!
 
 ## Building images
 
-Just use [`nix-snapshotter`](https://github.pdtpartners/nix-snapshotter) for this.
+Use [`nix-snapshotter`](https://github.com/pdtpartners/nix-snapshotter) for image creation.
