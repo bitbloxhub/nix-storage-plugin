@@ -1,4 +1,5 @@
 mod common;
+mod flake_ref;
 mod layer_store;
 mod local_image;
 mod metadata;
@@ -8,5 +9,6 @@ mod registry;
 mod skopeo;
 
 pub use common::{DEFAULT_REGISTRY_BIND_ADDR, NixStoragePluginError};
+pub use flake_ref::encode_flake_ref;
 pub use layer_store::{LayerStoreFS, LayerStoreResolver};
 pub use registry::run_registry_server;

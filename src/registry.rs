@@ -19,7 +19,8 @@ use crate::common::{
 	DEFAULT_REGISTRY_BIND_ADDR, NixStoragePluginError, data_response, sha256_blob_file_name,
 	sha256_digest, simple_response,
 };
-use crate::skopeo::export_source_to_temp_dir;
+use crate::flake_ref::{decode_flake_installable_from_repo, flake_registry_prefixes_log_value};
+use crate::skopeo::{export_source_to_temp_dir, host_command};
 
 #[derive(Debug, Clone)]
 struct ServedArchiveImage {
@@ -40,21 +41,24 @@ impl RegistryCache {
 		&self,
 		repo: &str,
 	) -> Result<Arc<ServedArchiveImage>, NixStoragePluginError> {
+		let archive_path = archive_path_for_repo(repo).await?;
+		let cache_key = archive_path.display().to_string();
+
 		if let Some(image) = self
 			.images
 			.read()
 			.expect("registry cache read lock")
-			.get(repo)
+			.get(&cache_key)
 			.cloned()
 		{
 			return Ok(image);
 		}
 
-		let image = Arc::new(load_archive_image(repo).await?);
+		let image = Arc::new(load_archive_image(&archive_path).await?);
 		self.images
 			.write()
 			.expect("registry cache write lock")
-			.insert(repo.to_owned(), image.clone());
+			.insert(cache_key, image.clone());
 		Ok(image)
 	}
 }
@@ -176,7 +180,7 @@ pub async fn run_registry_server(bind_addr: SocketAddr) -> Result<(), NixStorage
 	tracing::info!(
 		bind = %bind_addr,
 		default_bind = DEFAULT_REGISTRY_BIND_ADDR,
-		registry_prefix = "nix:0",
+		registry_prefixes = %format!("nix:0, {}", flake_registry_prefixes_log_value()),
 		"starting local nix image registry adapter"
 	);
 
@@ -201,8 +205,9 @@ pub async fn run_registry_server(bind_addr: SocketAddr) -> Result<(), NixStorage
 	}
 }
 
-async fn load_archive_image(repo: &str) -> Result<ServedArchiveImage, NixStoragePluginError> {
-	let archive_path = archive_path_for_repo(repo).await?;
+async fn load_archive_image(
+	archive_path: &Path,
+) -> Result<ServedArchiveImage, NixStoragePluginError> {
 	let archive_ref = format!("oci-archive:{}", archive_path.display());
 	let export_dir =
 		export_source_to_temp_dir(&archive_ref, "nix-storage-plugin-registry-").await?;
@@ -230,20 +235,72 @@ async fn load_archive_image(repo: &str) -> Result<ServedArchiveImage, NixStorage
 }
 
 async fn archive_path_for_repo(repo: &str) -> Result<PathBuf, NixStoragePluginError> {
+	if let Some(installable) = decode_flake_installable_from_repo(repo)? {
+		return build_flake_archive_path(&installable).await;
+	}
+
+	archive_path_from_local_repo(repo)
+}
+
+fn archive_path_from_local_repo(repo: &str) -> Result<PathBuf, NixStoragePluginError> {
 	let path = PathBuf::from(format!("/{repo}"));
-	if !path.starts_with("/nix/store/") {
-		return Err(NixStoragePluginError::InvalidImageRef(repo.to_owned()));
+	validate_archive_path(&path, repo)?;
+	Ok(path)
+}
+
+async fn build_flake_archive_path(installable: &str) -> Result<PathBuf, NixStoragePluginError> {
+	tracing::info!(%installable, "building flake image archive on demand");
+	let output = host_command(&[
+		"nix",
+		"build",
+		"--no-link",
+		"--print-out-paths",
+		"--extra-experimental-features",
+		"nix-command flakes",
+		"--",
+		installable,
+	])
+	.await?;
+	let out_paths = output
+		.lines()
+		.map(str::trim)
+		.filter(|line| !line.is_empty())
+		.collect::<Vec<_>>();
+	let Some(path_str) = out_paths.first() else {
+		return Err(NixStoragePluginError::InvalidLocalStorageState(format!(
+			"flake build returned no output path for {installable}",
+		)));
+	};
+	if out_paths.len() != 1 {
+		return Err(NixStoragePluginError::InvalidLocalStorageState(format!(
+			"flake build returned multiple output paths for {installable}: {}",
+			out_paths.join(", "),
+		)));
 	}
-	if path.extension().and_then(|ext| ext.to_str()) != Some("tar") {
-		return Err(NixStoragePluginError::InvalidImageRef(repo.to_owned()));
-	}
+	let path = PathBuf::from(path_str);
+	validate_archive_path(&path, installable)?;
 	if fs::metadata(&path).await.is_err() {
 		return Err(NixStoragePluginError::InvalidLocalStorageState(format!(
-			"archive path does not exist: {}",
+			"flake build output path does not exist: {}",
 			path.display(),
 		)));
 	}
+	tracing::info!(%installable, archive = %path.display(), "built flake image archive");
 	Ok(path)
+}
+
+fn validate_archive_path(path: &Path, image_ref: &str) -> Result<(), NixStoragePluginError> {
+	if !path.starts_with("/nix/store/") {
+		return Err(NixStoragePluginError::InvalidImageRef(image_ref.to_owned()));
+	}
+	if path.extension().and_then(|ext| ext.to_str()) != Some("tar") {
+		return Err(NixStoragePluginError::InvalidLocalStorageState(format!(
+			"image archive path is not a .tar file: {}",
+			path.display(),
+		)));
+	}
+
+	Ok(())
 }
 
 async fn read_exported_blob(

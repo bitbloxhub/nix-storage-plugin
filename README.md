@@ -51,8 +51,21 @@ Then you can run `nix-snapshotter`-compatible images, including:
 ```bash
 podman run ghcr.io/pdtpartners/redis-shell:latest
 podman run nix:0/nix/store/<hash>-nix-image-redis.tar
+podman run flake-github:0/pdtpartners/nix--x2d--snapshotter--x23--image--x2d--redis--x57--ith--x53--hell
+podman run flake-github:0/pdtpartners/nix--x2d--snapshotter--x3f--ref--x3d--main--x23--image--x2d--redis--x57--ith--x53--hell
 ```
 
 ## Building images
 
 Use [`nix-snapshotter`](https://github.com/pdtpartners/nix-snapshotter) for image creation.
+
+Flake protocol aliases are exposed through the registry adapter using `containers/registries.conf` prefix rewrites. The `flake-*` prefixes map to the local adapter with protocol-specific repository namespaces, so the adapter can decode and build the matching flake URL on demand before serving the resulting OCI archive. For protocol background and upstream discussion, see [`pdtpartners/nix-snapshotter#177`](https://github.com/pdtpartners/nix-snapshotter/issues/177).
+
+Flake refs are encoded into OCI-compatible repository names before they go through the registry alias path. The exact escaping is an internal implementation detail and may change, so use `encode-flake-ref` instead of hand-writing encoded refs:
+
+```bash
+nix run .#default -- encode-flake-ref -- 'github:pdtpartners/nix-snapshotter#image-redisWithShell'
+# flake-github:0/pdtpartners/nix--x2d--snapshotter--x23--image--x2d--redis--x57--ith--x53--hell
+
+podman run flake-github:0/pdtpartners/nix--x2d--snapshotter--x23--image--x2d--redis--x57--ith--x53--hell
+```

@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
 use fuse3::{MountOptions, path::Session};
 use nix_storage_plugin::{
 	DEFAULT_REGISTRY_BIND_ADDR, LayerStoreFS, LayerStoreResolver, NixStoragePluginError,
-	run_registry_server,
+	encode_flake_ref, run_registry_server,
 };
 use smol::fs;
 use smol::stream::StreamExt;
@@ -30,6 +30,9 @@ enum Commands {
 	ServeImage {
 		#[arg(long, default_value = DEFAULT_REGISTRY_BIND_ADDR)]
 		bind: SocketAddr,
+	},
+	EncodeFlakeRef {
+		flake_ref: String,
 	},
 }
 
@@ -55,6 +58,10 @@ fn main() -> Result<(), NixStoragePluginError> {
 		match Cli::parse().command {
 			Commands::MountStore { mount_path } => mount_store(mount_path).await,
 			Commands::ServeImage { bind } => run_registry_server(bind).await,
+			Commands::EncodeFlakeRef { flake_ref } => {
+				println!("{}", encode_flake_ref(&flake_ref)?);
+				Ok(())
+			}
 		}
 	})
 }

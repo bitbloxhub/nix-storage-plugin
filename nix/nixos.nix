@@ -28,6 +28,36 @@
             location = registryLocation;
             insecure = true;
           }
+          {
+            prefix = "flake-github:0";
+            location = "${registryLocation}/flake-github";
+            insecure = true;
+          }
+          {
+            prefix = "flake-tarball-https:0";
+            location = "${registryLocation}/flake-tarball-https";
+            insecure = true;
+          }
+          {
+            prefix = "flake-tarball-http:0";
+            location = "${registryLocation}/flake-tarball-http";
+            insecure = true;
+          }
+          {
+            prefix = "flake-git-https:0";
+            location = "${registryLocation}/flake-git-https";
+            insecure = true;
+          }
+          {
+            prefix = "flake-git-http:0";
+            location = "${registryLocation}/flake-git-http";
+            insecure = true;
+          }
+          {
+            prefix = "flake-git-ssh:0";
+            location = "${registryLocation}/flake-git-ssh";
+            insecure = true;
+          }
         ];
       };
     in
@@ -68,7 +98,7 @@
         manageRegistryAlias = mkOption {
           type = types.bool;
           default = true;
-          description = "Whether to add the nix:0 registry alias drop-in for containers registries.conf";
+          description = "Whether to add the nix:0 and flake-* registry alias drop-ins for containers registries.conf";
         };
       };
 
