@@ -16,27 +16,69 @@ use crate::metadata::{
 	ResolvedLayer,
 };
 use crate::nix_metadata::{NIX_STORE_PATH_PREFIX, ParsedNixMetadata, path_to_string};
-use crate::oci::{descriptor_annotations_btree, image_source_ref};
-use crate::skopeo::{
-	export_source_to_temp_dir, host_command, inspect_config_raw, inspect_manifest_raw,
-};
+use crate::oci::{archive_source_ref, containers_storage_ref, descriptor_annotations_btree};
+use crate::skopeo::{export_source_to_temp_dir, inspect_config_raw, inspect_manifest_raw};
+use crate::storage_config::{StorageConfig, load_storage_config};
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct PodmanInfo {
-	store: PodmanStore,
+const SKOPEO_HELPER_STORAGE_CONF: &str = "/dev/null";
+
+#[derive(Debug)]
+struct LocalStorageSource {
+	graph_driver_name: Option<String>,
+	graph_root: PathBuf,
+	run_root: PathBuf,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct PodmanStore {
-	graph_root: PathBuf,
+impl LocalStorageSource {
+	fn source_ref(&self, image_ref: &str) -> Result<String, NixStoragePluginError> {
+		let normalized = containers_storage_ref(image_ref);
+		let normalized = normalized
+			.strip_prefix("containers-storage:")
+			.ok_or_else(|| {
+				NixStoragePluginError::InvalidLocalStorageState(format!(
+					"failed to build explicit containers-storage source ref for {image_ref}",
+				))
+			})?;
+		let store = if let Some(driver) = &self.graph_driver_name {
+			format!(
+				"[{driver}@{}+{}]",
+				self.graph_root.display(),
+				self.run_root.display()
+			)
+		} else {
+			format!(
+				"[{}+{}]",
+				self.graph_root.display(),
+				self.run_root.display()
+			)
+		};
+		Ok(format!("containers-storage:{store}{normalized}"))
+	}
+}
+
+async fn local_storage_source() -> Result<LocalStorageSource, NixStoragePluginError> {
+	let StorageConfig {
+		driver,
+		graph_root,
+		run_root,
+	} = load_storage_config().await?;
+	Ok(LocalStorageSource {
+		graph_driver_name: driver,
+		graph_root,
+		run_root,
+	})
+}
+
+async fn image_source_for_skopeo(image_ref: &str) -> Result<String, NixStoragePluginError> {
+	if let Some(source) = archive_source_ref(image_ref) {
+		return Ok(source);
+	}
+
+	local_storage_source().await?.source_ref(image_ref)
 }
 
 async fn storage_graph_root() -> Result<PathBuf, NixStoragePluginError> {
-	let output = host_command(&["podman", "info", "--format", "json"]).await?;
-	let info: PodmanInfo = serde_json::from_str(&output)?;
-	Ok(info.store.graph_root)
+	Ok(local_storage_source().await?.graph_root)
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -163,13 +205,21 @@ async fn resolve_local_layer(
 async fn inspect_image_source_manifest_raw(
 	image_ref: &str,
 ) -> Result<String, NixStoragePluginError> {
-	let source = image_source_ref(image_ref);
-	inspect_manifest_raw(&source).await
+	let source = image_source_for_skopeo(image_ref).await?;
+	inspect_manifest_raw(
+		&source,
+		&[("CONTAINERS_STORAGE_CONF", SKOPEO_HELPER_STORAGE_CONF)],
+	)
+	.await
 }
 
 async fn inspect_image_source_config_raw(image_ref: &str) -> Result<String, NixStoragePluginError> {
-	let source = image_source_ref(image_ref);
-	inspect_config_raw(&source).await
+	let source = image_source_for_skopeo(image_ref).await?;
+	inspect_config_raw(
+		&source,
+		&[("CONTAINERS_STORAGE_CONF", SKOPEO_HELPER_STORAGE_CONF)],
+	)
+	.await
 }
 
 async fn export_image_source_blobs(
@@ -180,8 +230,13 @@ async fn export_image_source_blobs(
 		return Ok(BTreeMap::new());
 	}
 
-	let source = image_source_ref(image_ref);
-	let export_dir = export_source_to_temp_dir(&source, "nix-storage-plugin-").await?;
+	let source = image_source_for_skopeo(image_ref).await?;
+	let export_dir = export_source_to_temp_dir(
+		&source,
+		"nix-storage-plugin-",
+		&[("CONTAINERS_STORAGE_CONF", SKOPEO_HELPER_STORAGE_CONF)],
+	)
+	.await?;
 	read_exported_blobs_by_layer_order(export_dir.path(), layers, &source).await
 }
 

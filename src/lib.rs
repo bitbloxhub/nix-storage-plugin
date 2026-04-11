@@ -7,6 +7,7 @@ mod nix_metadata;
 mod oci;
 mod registry;
 mod skopeo;
+mod storage_config;
 
 pub use common::{DEFAULT_REGISTRY_BIND_ADDR, NixStoragePluginError};
 pub use flake_ref::encode_flake_ref;

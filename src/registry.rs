@@ -210,7 +210,7 @@ async fn load_archive_image(
 ) -> Result<ServedArchiveImage, NixStoragePluginError> {
 	let archive_ref = format!("oci-archive:{}", archive_path.display());
 	let export_dir =
-		export_source_to_temp_dir(&archive_ref, "nix-storage-plugin-registry-").await?;
+		export_source_to_temp_dir(&archive_ref, "nix-storage-plugin-registry-", &[]).await?;
 	let export_dir_path = export_dir.path();
 
 	let manifest = Bytes::from(fs::read(export_dir_path.join("manifest.json")).await?);

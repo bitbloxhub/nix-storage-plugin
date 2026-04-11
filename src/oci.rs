@@ -18,11 +18,7 @@ pub(crate) fn descriptor_annotations_btree(layer: &Descriptor) -> BTreeMap<Strin
 		.collect()
 }
 
-pub(crate) fn image_source_ref(image_ref: &str) -> String {
-	archive_source_ref(image_ref).unwrap_or_else(|| containers_storage_ref(image_ref))
-}
-
-fn archive_source_ref(image_ref: &str) -> Option<String> {
+pub(crate) fn archive_source_ref(image_ref: &str) -> Option<String> {
 	archive_path_from_image_ref(image_ref)
 		.map(|archive_path| format!("oci-archive:{}", archive_path.display()))
 }
@@ -33,7 +29,7 @@ fn archive_path_from_image_ref(image_ref: &str) -> Option<PathBuf> {
 	Some(PathBuf::from(format!("/{}", &suffix[..archive_end])))
 }
 
-fn containers_storage_ref(image_ref: &str) -> String {
+pub(crate) fn containers_storage_ref(image_ref: &str) -> String {
 	let normalized = if image_ref
 		.rsplit('/')
 		.next()
