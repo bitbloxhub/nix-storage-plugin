@@ -16,11 +16,12 @@ use oci_spec::image::ImageManifest;
 use smol_hyper::rt::FuturesIo;
 
 use crate::common::{
-	DEFAULT_REGISTRY_BIND_ADDR, NixStoragePluginError, data_response, sha256_blob_file_name,
-	sha256_digest, simple_response,
+	DEFAULT_REGISTRY_BIND_ADDR, NixStoragePluginError, data_response, host_command,
+	sha256_blob_file_name, sha256_digest, simple_response,
 };
 use crate::flake_ref::{decode_flake_installable_from_repo, flake_registry_prefixes_log_value};
-use crate::skopeo::{export_source_to_temp_dir, host_command};
+use crate::nix::try_realize_nix_archive_path;
+use crate::skopeo::export_source_to_temp_dir;
 
 #[derive(Debug, Clone)]
 struct ServedArchiveImage {
@@ -239,12 +240,13 @@ async fn archive_path_for_repo(repo: &str) -> Result<PathBuf, NixStoragePluginEr
 		return build_flake_archive_path(&installable).await;
 	}
 
-	archive_path_from_local_repo(repo)
+	archive_path_from_local_repo(repo).await
 }
 
-fn archive_path_from_local_repo(repo: &str) -> Result<PathBuf, NixStoragePluginError> {
+async fn archive_path_from_local_repo(repo: &str) -> Result<PathBuf, NixStoragePluginError> {
 	let path = PathBuf::from(format!("/{repo}"));
 	validate_archive_path(&path, repo)?;
+	try_realize_nix_archive_path(&path).await;
 	Ok(path)
 }
 

@@ -18,12 +18,7 @@ pub(crate) fn descriptor_annotations_btree(layer: &Descriptor) -> BTreeMap<Strin
 		.collect()
 }
 
-pub(crate) fn archive_source_ref(image_ref: &str) -> Option<String> {
-	archive_path_from_image_ref(image_ref)
-		.map(|archive_path| format!("oci-archive:{}", archive_path.display()))
-}
-
-fn archive_path_from_image_ref(image_ref: &str) -> Option<PathBuf> {
+pub(crate) fn archive_path_from_image_ref(image_ref: &str) -> Option<PathBuf> {
 	let suffix = image_ref.strip_prefix("nix:0/")?;
 	let archive_end = suffix.find(".tar")? + ".tar".len();
 	Some(PathBuf::from(format!("/{}", &suffix[..archive_end])))

@@ -1,6 +1,7 @@
 use std::io;
 use std::time::Duration;
 
+use async_process::Command;
 use bytes::Bytes;
 use fuse3::FileType;
 use fuse3::path::reply::FileAttr;
@@ -118,4 +119,32 @@ pub fn data_response(
 	}
 
 	builder.body(Full::new(body)).expect("response")
+}
+
+pub(crate) async fn host_command(args: &[&str]) -> Result<String, NixStoragePluginError> {
+	host_command_with_env(args, &[]).await
+}
+
+pub(crate) async fn host_command_with_env(
+	args: &[&str],
+	env: &[(&str, &str)],
+) -> Result<String, NixStoragePluginError> {
+	if args.is_empty() {
+		return Err(NixStoragePluginError::InvalidLocalStorageState(
+			"host command requested without any argv".to_owned(),
+		));
+	}
+	let mut command = Command::new(args[0]);
+	command.args(&args[1..]);
+	for (key, value) in env {
+		command.env(key, value);
+	}
+	let output = command.output().await?;
+	if !output.status.success() {
+		return Err(NixStoragePluginError::HostCommandFailed {
+			command: args.join(" "),
+			stderr: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+		});
+	}
+	Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }

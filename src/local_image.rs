@@ -15,8 +15,11 @@ use crate::metadata::{
 	LayerDiffEntry, LayerDiffEntryKind, LayerSource, NixClosureMetadata, ResolvedImage,
 	ResolvedLayer,
 };
+use crate::nix::try_realize_nix_archive_path;
 use crate::nix_metadata::{NIX_STORE_PATH_PREFIX, ParsedNixMetadata, path_to_string};
-use crate::oci::{archive_source_ref, containers_storage_ref, descriptor_annotations_btree};
+use crate::oci::{
+	archive_path_from_image_ref, containers_storage_ref, descriptor_annotations_btree,
+};
 use crate::skopeo::{export_source_to_temp_dir, inspect_config_raw, inspect_manifest_raw};
 use crate::storage_config::{StorageConfig, load_storage_config};
 
@@ -70,8 +73,9 @@ async fn local_storage_source() -> Result<LocalStorageSource, NixStoragePluginEr
 }
 
 async fn image_source_for_skopeo(image_ref: &str) -> Result<String, NixStoragePluginError> {
-	if let Some(source) = archive_source_ref(image_ref) {
-		return Ok(source);
+	if let Some(archive_path) = archive_path_from_image_ref(image_ref) {
+		try_realize_nix_archive_path(&archive_path).await;
+		return Ok(format!("oci-archive:{}", archive_path.display()));
 	}
 
 	local_storage_source().await?.source_ref(image_ref)

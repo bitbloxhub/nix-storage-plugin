@@ -3,6 +3,7 @@ mod flake_ref;
 mod layer_store;
 mod local_image;
 mod metadata;
+mod nix;
 mod nix_metadata;
 mod oci;
 mod registry;
