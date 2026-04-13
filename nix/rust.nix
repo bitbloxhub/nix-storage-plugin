@@ -19,6 +19,7 @@ _: {
     {
       pkgs,
       inputs',
+      self',
       ...
     }:
     let
@@ -33,6 +34,8 @@ _: {
             cargo = inputs'.fenix.packages.default.toolchain;
           };
       };
+
+      patchedSkopeo = self'.packages.skopeo;
     in
     {
       make-shells.default = {
@@ -43,7 +46,17 @@ _: {
         ];
       };
 
-      packages.default = cargoWorkspace.rootCrate.build;
+      packages.default = cargoWorkspace.rootCrate.build.overrideAttrs (old: {
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
+
+        postFixup = (old.postFixup or "") + ''
+          for program in "$out"/bin/*; do
+            [ -f "$program" ] || continue
+            wrapProgram "$program" \
+              --prefix PATH : ${pkgs.lib.makeBinPath [ patchedSkopeo ]}
+          done
+        '';
+      });
 
       treefmt = {
         programs.rustfmt = {
