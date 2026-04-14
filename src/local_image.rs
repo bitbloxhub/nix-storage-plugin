@@ -361,7 +361,12 @@ async fn read_local_layer_records() -> Result<Vec<LocalStorageLayerRecord>, NixS
 		.await?
 		.join("overlay-layers")
 		.join("layers.json");
-	let data = fs::read_to_string(path).await?;
+
+	let data = match fs::read_to_string(&path).await {
+		Ok(data) => data,
+		Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+		Err(error) => return Err(error.into()),
+	};
 	let raw_records = serde_json::from_str::<Vec<Value>>(&data)?;
 	let mut records = Vec::with_capacity(raw_records.len());
 
