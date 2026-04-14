@@ -15,7 +15,7 @@ let
 
       storagePatch = prev.fetchpatch {
         url = alsFirstPatchUrl;
-        hash = "sha256-L7Pysl4YbD/ThroJbrk+OqyRl7je1wENJzOkdTK2aLs=";
+        hash = "sha256-Xw9of20n1fl418V2XmkUkzBn1DlBZSRhoQzMP/wpzsE=";
         relative = "storage";
         extraPrefix = "vendor/go.podman.io/storage/";
         excludes = [ "*_test.go" ];
