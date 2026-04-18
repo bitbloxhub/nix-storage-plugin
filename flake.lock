@@ -150,6 +150,33 @@
         "type": "github"
       }
     },
+    "hegel": {
+      "inputs": {
+        "flake-compat": [],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "pyproject-build-systems": "pyproject-build-systems",
+        "pyproject-nix": "pyproject-nix",
+        "uv2nix": "uv2nix"
+      },
+      "locked": {
+        "dir": "nix",
+        "lastModified": 1775949076,
+        "narHash": "sha256-qLroB9tbpY7Bl8XmR096NfcRuCWCX+uqLEQYRAN5hMo=",
+        "owner": "hegeldev",
+        "repo": "hegel-core",
+        "rev": "fda0b747a64ab8a9bd4e44602354aa164415f0d2",
+        "type": "github"
+      },
+      "original": {
+        "dir": "nix",
+        "owner": "hegeldev",
+        "ref": "v0.4.1",
+        "repo": "hegel-core",
+        "type": "github"
+      }
+    },
     "import-tree": {
       "locked": {
         "lastModified": 1773554199,
@@ -241,6 +268,56 @@
         "type": "github"
       }
     },
+    "pyproject-build-systems": {
+      "inputs": {
+        "nixpkgs": [
+          "hegel",
+          "nixpkgs"
+        ],
+        "pyproject-nix": [
+          "hegel",
+          "pyproject-nix"
+        ],
+        "uv2nix": [
+          "hegel",
+          "uv2nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1772555609,
+        "narHash": "sha256-3BA3HnUvJSbHJAlJj6XSy0Jmu7RyP2gyB/0fL7XuEDo=",
+        "owner": "pyproject-nix",
+        "repo": "build-system-pkgs",
+        "rev": "c37f66a953535c394244888598947679af231863",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pyproject-nix",
+        "repo": "build-system-pkgs",
+        "type": "github"
+      }
+    },
+    "pyproject-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "hegel",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1771518446,
+        "narHash": "sha256-nFJSfD89vWTu92KyuJWDoTQJuoDuddkJV3TlOl1cOic=",
+        "owner": "pyproject-nix",
+        "repo": "pyproject.nix",
+        "rev": "eb204c6b3335698dec6c7fc1da0ebc3c6df05937",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pyproject-nix",
+        "repo": "pyproject.nix",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "crate2nix": "crate2nix",
@@ -248,6 +325,7 @@
         "flake-file": "flake-file",
         "flake-parts": "flake-parts",
         "flint": "flint",
+        "hegel": "hegel",
         "import-tree": "import-tree",
         "make-shell": "make-shell",
         "nixpkgs": "nixpkgs",
@@ -288,6 +366,31 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "uv2nix": {
+      "inputs": {
+        "nixpkgs": [
+          "hegel",
+          "nixpkgs"
+        ],
+        "pyproject-nix": [
+          "hegel",
+          "pyproject-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1772545244,
+        "narHash": "sha256-Ys+5UMOqp2kRvnSjyBcvGnjOhkIXB88On1ZcAstz1vY=",
+        "owner": "pyproject-nix",
+        "repo": "uv2nix",
+        "rev": "482aba340ded40ef557d331315f227d5eba84ced",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pyproject-nix",
+        "repo": "uv2nix",
         "type": "github"
       }
     }
