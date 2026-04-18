@@ -1,3 +1,5 @@
+# cargo-llvm-cov docs: set `LLVM_COV`/`LLVM_PROFDATA` when `llvm-tools-preview` is not in default toolchain
+# fenix docs: nightly `default` may omit `llvm-tools-preview`, but `complete` exposes it as a separate component
 _: {
   flake-file.inputs = {
     fenix = {
@@ -13,6 +15,12 @@ _: {
       inputs.crate2nix_stable.follows = "crate2nix";
       inputs.cachix.follows = "";
     };
+
+    hegel = {
+      url = "github:hegeldev/hegel-core?ref=v0.4.1&dir=nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-compat.follows = "";
+    };
   };
 
   perSystem =
@@ -25,13 +33,19 @@ _: {
     let
       cargoNix = import ../Cargo.nix;
 
+      rustToolchain = inputs'.fenix.packages.default.toolchain;
+
+      llvmTools = inputs'.fenix.packages.complete.llvm-tools-preview;
+
+      llvmToolsBin = "${llvmTools}/lib/rustlib/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/bin";
+
       cargoWorkspace = pkgs.callPackage cargoNix {
         buildRustCrateForPkgs =
           pkgs:
           with pkgs;
           buildRustCrate.override {
-            rustc = inputs'.fenix.packages.default.toolchain;
-            cargo = inputs'.fenix.packages.default.toolchain;
+            rustc = rustToolchain;
+            cargo = rustToolchain;
           };
       };
 
@@ -43,7 +57,14 @@ _: {
           inputs'.fenix.packages.default.toolchain
           pkgs.rust-analyzer
           inputs'.crate2nix.packages.default
+          pkgs.cargo-nextest
+          pkgs.cargo-llvm-cov
+          llvmTools
+          pkgs.lcov
         ];
+        env.HEGEL_SERVER_COMMAND = pkgs.lib.getExe inputs'.hegel.packages.default;
+        env.LLVM_COV = "${llvmToolsBin}/llvm-cov";
+        env.LLVM_PROFDATA = "${llvmToolsBin}/llvm-profdata";
       };
 
       packages.default = cargoWorkspace.rootCrate.build.overrideAttrs (old: {
