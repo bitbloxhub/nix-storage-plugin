@@ -14,5 +14,8 @@
 
   perSystem.treefmt = {
     projectRootFile = "flake.lock";
+    settings.global.excludes = [
+      ".agents/**/*" # Agent skills are installed from third-party sources
+    ];
   };
 }

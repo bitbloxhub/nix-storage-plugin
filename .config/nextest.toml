@@ -1,0 +1,10 @@
+[[profile.default.overrides]]
+filter = 'test(/^podman_/)'
+test-group = 'network'
+
+[[profile.default.overrides]]
+filter = 'test(/flake_archive_resolution_and_loading_paths_work_end_to_end/)'
+test-group = 'network'
+
+[test-groups.network]
+max-threads = 1

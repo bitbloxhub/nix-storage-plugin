@@ -31,6 +31,13 @@
       url = "github:NotAShelf/flint";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hegel = {
+      url = "github:hegeldev/hegel-core?ref=v0.4.1&dir=nix";
+      inputs = {
+        flake-compat.follows = "";
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
     import-tree.url = "github:vic/import-tree";
     make-shell = {
       url = "github:nicknovitski/make-shell";
