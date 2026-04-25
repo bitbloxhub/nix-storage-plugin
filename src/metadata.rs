@@ -79,3 +79,108 @@ impl ResolvedImage {
 		})
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use std::collections::HashMap;
+
+	use super::*;
+	use hegel::generators::{self, Generator};
+
+	fn resolved_layer(
+		annotations: BTreeMap<String, String>,
+		nix_closure: Option<NixClosureMetadata>,
+	) -> ResolvedLayer {
+		ResolvedLayer {
+			compressed_digest: "sha256:compressed".to_owned(),
+			compressed_size: 1,
+			diff_digest: "sha256:diff".to_owned(),
+			diff_size: 1,
+			annotations,
+			raw_info: None,
+			compression: None,
+			uidset: Vec::new(),
+			gidset: Vec::new(),
+			source: LayerSource::Registry,
+			nix_closure,
+			blob: Bytes::new(),
+			diff_entries: Vec::new(),
+		}
+	}
+
+	fn resolved_image(layers: Vec<ResolvedLayer>) -> ResolvedImage {
+		ResolvedImage {
+			image_ref: "example:latest".to_owned(),
+			encoded_ref: "example/latest".to_owned(),
+			manifest_digest: "sha256:manifest".to_owned(),
+			config_digest: "sha256:config".to_owned(),
+			layers,
+			command: Vec::new(),
+		}
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn is_nix_backed_false_without_nix_metadata(tc: hegel::TestCase) {
+		let annotations = tc.draw(generators::hashmaps(
+			generators::text().filter(|key| {
+				key != NIX_CLOSURE_ANNOTATION_KEY && !key.starts_with(NIX_STORE_PATH_PREFIX)
+			}),
+			generators::text(),
+		));
+		let layers = tc.draw(generators::vecs(generators::just(annotations)).max_size(8));
+		let image = resolved_image(
+			layers
+				.into_iter()
+				.map(|annotations: HashMap<String, String>| {
+					resolved_layer(annotations.into_iter().collect(), None)
+				})
+				.collect(),
+		);
+
+		assert!(!image.is_nix_backed());
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn is_nix_backed_true_when_any_layer_has_nix_closure(tc: hegel::TestCase) {
+		let closure_path = tc.draw(generators::text());
+		let store_paths = tc.draw(generators::vecs(generators::text()).max_size(8));
+		let non_nix_layers = tc.draw(generators::integers::<usize>().max_value(4));
+		let image = resolved_image(
+			(0..non_nix_layers)
+				.map(|_| resolved_layer(BTreeMap::new(), None))
+				.chain(std::iter::once(resolved_layer(
+					BTreeMap::new(),
+					Some(NixClosureMetadata {
+						closure_path: closure_path.clone(),
+						store_paths: store_paths.clone(),
+					}),
+				)))
+				.collect(),
+		);
+
+		assert!(image.is_nix_backed());
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn is_nix_backed_true_for_closure_annotation_key(tc: hegel::TestCase) {
+		let value = tc.draw(generators::text());
+		let image = resolved_image(vec![resolved_layer(
+			BTreeMap::from([(NIX_CLOSURE_ANNOTATION_KEY.to_owned(), value)]),
+			None,
+		)]);
+
+		assert!(image.is_nix_backed());
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn is_nix_backed_true_for_legacy_store_path_annotations(tc: hegel::TestCase) {
+		let suffix = tc.draw(generators::text());
+		let value = tc.draw(generators::text());
+		let image = resolved_image(vec![resolved_layer(
+			BTreeMap::from([(format!("{NIX_STORE_PATH_PREFIX}{suffix}"), value)]),
+			None,
+		)]);
+
+		assert!(image.is_nix_backed());
+	}
+}

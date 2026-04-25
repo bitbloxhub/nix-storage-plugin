@@ -69,3 +69,17 @@ nix run .#default -- encode-flake-ref -- 'github:pdtpartners/nix-snapshotter#ima
 
 podman run flake-github:0/pdtpartners/nix--x2d--snapshotter--x23--image--x2d--redis--x57--ith--x53--hell
 ```
+
+## Testing
+
+Use nextest for local and CI-style runs:
+
+```bash
+cargo nextest run
+```
+
+To skip tests that require network access (flake builds, podman e2e pulls/runs):
+
+```bash
+NO_TEST_NETWORK=1 cargo nextest run
+```

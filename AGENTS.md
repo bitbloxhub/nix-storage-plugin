@@ -84,3 +84,16 @@ podman run nix:0/nix/store/<hash>-nix-image-redis.tar
 - `nix:0/...` works with one-time config only
 - nix-backed images resolve lazily through the ALS
 - non-nix images are skipped cleanly
+
+## Testing
+
+- use Hegel for property-based tests in pure logic-heavy code when properties are clear
+- prefer `#[hegel::test(derandomize = true)]` so generated cases are deterministic across runs without hard-coding arbitrary numeric seeds
+- keep Hegel tests in existing module test blocks instead of separate dedicated hegel test files
+- when inspecting generated examples, temporarily raise Hegel verbosity on the test, e.g. `#[hegel::test(derandomize = true, verbosity = hegel::Verbosity::Debug)]`
+- Hegel always shows minimized counterexamples on failure; use higher verbosity only when actively debugging generated cases
+- prefer `cargo nextest run` over `cargo test` for normal test runs once `cargo-nextest` is available in the dev shell
+- install `cargo-llvm-cov` in the Nix dev shell and prefer coverage-backed test runs by default
+- prefer `cargo llvm-cov nextest` over plain `cargo nextest run` when validating Rust changes so coverage stays current
+- common coverage outputs: `cargo llvm-cov nextest --html` for local browsing and `cargo llvm-cov nextest --lcov --output-path lcov.info` for CI/reporting
+- use `cargo test` only when you specifically need raw libtest behavior or a tool does not integrate cleanly with nextest

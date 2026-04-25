@@ -32,3 +32,9 @@ tempfile = "3.23.0"
 oci-spec = "0.9.0"
 procfs = "0.18.0"
 toml = "0.9.8"
+
+[dev-dependencies]
+hegel = { package = "hegeltest", version = "0.5.1" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_test_network)"] }

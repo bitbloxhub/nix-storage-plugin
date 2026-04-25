@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "hegel": {
+      "source": "hegeldev/hegel-skill",
+      "sourceType": "github",
+      "computedHash": "600b94b87f043ce0a1d81a658fab0f16a60ceba190255d4c902a08ef34dbf00a"
+    }
+  }
+}

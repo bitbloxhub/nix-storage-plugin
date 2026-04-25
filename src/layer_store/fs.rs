@@ -909,3 +909,557 @@ impl PathFilesystem for LayerStoreFS {
 		})
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use std::ffi::{OsStr, OsString};
+	use std::os::unix::fs as unix_fs;
+	use std::path::PathBuf;
+	use std::sync::Arc;
+
+	use bytes::Bytes;
+	use fuse3::FileType;
+	use hegel::generators::{self};
+
+	use super::*;
+	use crate::metadata::LayerDiffEntryKind;
+
+	fn dummy_fs() -> LayerStoreFS {
+		LayerStoreFS::new(Arc::new(LayerStoreResolver::new()))
+	}
+
+	fn regular_entry(path: &str, perm: u16, contents: &[u8]) -> LayerDiffEntry {
+		LayerDiffEntry {
+			path: PathBuf::from(path),
+			perm,
+			kind: LayerDiffEntryKind::Regular {
+				contents: Bytes::copy_from_slice(contents),
+			},
+		}
+	}
+
+	fn directory_entry(path: &str, perm: u16) -> LayerDiffEntry {
+		LayerDiffEntry {
+			path: PathBuf::from(path),
+			perm,
+			kind: LayerDiffEntryKind::Directory,
+		}
+	}
+
+	fn symlink_entry(path: &str, target: &str) -> LayerDiffEntry {
+		LayerDiffEntry {
+			path: PathBuf::from(path),
+			perm: 0o777,
+			kind: LayerDiffEntryKind::Symlink {
+				target: PathBuf::from(target),
+			},
+		}
+	}
+
+	fn sample_layer(info: &[u8], blob: &[u8]) -> LayerStoreLayer {
+		LayerStoreLayer {
+			keys: vec!["sha256:key".to_owned()],
+			info: Bytes::copy_from_slice(info),
+			blob: Bytes::copy_from_slice(blob),
+			diff: LayerStoreDiff::default(),
+		}
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn parse_path_classifies_store_paths(tc: hegel::TestCase) {
+		let encoded_ref =
+			tc.draw(generators::from_regex(r"[A-Za-z0-9._=+-]{1,24}").fullmatch(true));
+		let layer_key = tc.draw(generators::from_regex(r"sha256:[a-f0-9]{8,16}").fullmatch(true));
+		let entry = tc.draw(generators::sampled_from(vec!["info", "blob", "use"]));
+		let relative = tc.draw(
+			generators::vecs(generators::from_regex(r"[A-Za-z0-9._-]{1,12}").fullmatch(true))
+				.max_size(4),
+		);
+
+		assert!(matches!(
+			LayerStoreFS::parse_path(OsStr::new("/")),
+			Some(StorePath::Root)
+		));
+		assert!(matches!(
+			LayerStoreFS::parse_path(OsStr::new(&format!("/{encoded_ref}"))),
+			Some(StorePath::Image { encoded_ref: actual }) if actual == encoded_ref
+		));
+		assert!(matches!(
+			LayerStoreFS::parse_path(OsStr::new(&format!("/{encoded_ref}/{layer_key}"))),
+			Some(StorePath::Layer { encoded_ref: actual_ref, layer_key: actual_key }) if actual_ref == encoded_ref && actual_key == layer_key
+		));
+		assert!(matches!(
+			LayerStoreFS::parse_path(OsStr::new(&format!("/{encoded_ref}/{layer_key}/{entry}"))),
+			Some(StorePath::LayerEntry { encoded_ref: actual_ref, layer_key: actual_key, entry: actual_entry }) if actual_ref == encoded_ref && actual_key == layer_key && actual_entry == entry
+		));
+		let diff_path = if relative.is_empty() {
+			format!("/{encoded_ref}/{layer_key}/diff")
+		} else {
+			format!("/{encoded_ref}/{layer_key}/diff/{}", relative.join("/"))
+		};
+		assert!(matches!(
+			LayerStoreFS::parse_path(OsStr::new(&diff_path)),
+			Some(StorePath::Diff { encoded_ref: actual_ref, layer_key: actual_key, relative: actual_relative }) if actual_ref == encoded_ref && actual_key == layer_key && actual_relative == relative
+		));
+		assert!(LayerStoreFS::parse_path(OsStr::new("/a/b/c/d/e")).is_none());
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn layer_entry_helpers_expose_info_blob_and_diff_entries(tc: hegel::TestCase) {
+		let info = tc.draw(generators::binary());
+		let blob = tc.draw(generators::binary());
+		let layer = sample_layer(&info, &blob);
+		assert_eq!(
+			LayerStoreFS::layer_entry_attr(&layer, "info")
+				.expect("info attr")
+				.size,
+			info.len() as u64
+		);
+		assert_eq!(
+			LayerStoreFS::layer_entry_attr(&layer, "blob")
+				.expect("blob attr")
+				.size,
+			blob.len() as u64
+		);
+		assert!(LayerStoreFS::layer_entry_attr(&layer, "diff").is_none());
+		assert_eq!(
+			LayerStoreFS::layer_entry_bytes(layer.clone(), "info"),
+			Some(Bytes::from(info.clone()))
+		);
+		assert_eq!(
+			LayerStoreFS::layer_entry_bytes(layer, "blob"),
+			Some(Bytes::from(blob.clone()))
+		);
+		assert_eq!(LayerStoreFS::layer_dir_entries().len(), 3);
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn path_and_virtual_helpers_map_components_correctly(tc: hegel::TestCase) {
+		let segments = tc.draw(
+			generators::vecs(generators::from_regex(r"[A-Za-z0-9._-]{1,8}").fullmatch(true))
+				.min_size(1)
+				.max_size(4),
+		);
+		let root_segments = tc.draw(
+			generators::vecs(generators::from_regex(r"[A-Za-z0-9._-]{1,8}").fullmatch(true))
+				.min_size(1)
+				.max_size(4),
+		);
+		let child = tc.draw(generators::from_regex(r"[A-Za-z0-9._-]{1,8}").fullmatch(true));
+		let path = format!("/{}/", segments.join("//"));
+		assert_eq!(LayerStoreFS::path_components(OsStr::new(&path)), segments);
+		assert!(LayerStoreFS::starts_with(
+			&["a".into(), "b".into()],
+			&["a".into()]
+		));
+		let root = PathBuf::from(format!("/{}", root_segments.join("/")));
+		let relative = root_segments
+			.iter()
+			.cloned()
+			.chain([child.clone()])
+			.collect::<Vec<_>>();
+		assert_eq!(LayerStoreFS::virtual_root_components(&root), root_segments);
+		assert_eq!(
+			LayerStoreFS::host_path_from_virtual(&root, &relative),
+			root.join(&child)
+		);
+		assert_eq!(
+			LayerStoreFS::path_from_parent(OsStr::new("/"), OsStr::new(&child)),
+			OsString::from(format!("/{child}"))
+		);
+		assert_eq!(
+			LayerStoreFS::path_from_parent(OsStr::new("/a"), OsStr::new(&child)),
+			OsString::from(format!("/a/{child}"))
+		);
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn virtual_diff_helpers_cover_attr_bytes_links_and_directory_merging(tc: hegel::TestCase) {
+		let file_name = tc.draw(generators::from_regex(r"[A-Za-z0-9._-]{1,8}").fullmatch(true));
+		let link_name = tc.draw(generators::from_regex(r"[A-Za-z0-9._-]{1,8}").fullmatch(true));
+		let target = tc.draw(generators::from_regex(r"[A-Za-z0-9._/-]{1,16}").fullmatch(true));
+		let contents = tc.draw(generators::binary());
+		let perm = tc.draw(generators::integers::<u16>());
+		let entries = vec![
+			directory_entry("bin", 0o755),
+			regular_entry(&format!("bin/{file_name}"), perm, &contents),
+			symlink_entry(&link_name, &target),
+		];
+		assert_eq!(
+			LayerStoreFS::virtual_diff_entry_attr(&entries, &["bin".into()])
+				.expect("bin attr")
+				.kind,
+			FileType::Directory
+		);
+		assert_eq!(
+			LayerStoreFS::virtual_diff_entry_attr(&entries, &["bin".into(), file_name.clone()])
+				.expect("file attr")
+				.perm,
+			if perm == 0 { 0o444 } else { perm }
+		);
+		assert_eq!(
+			LayerStoreFS::virtual_diff_read_bytes(&entries, &["bin".into(), file_name.clone()]),
+			Some(Bytes::from(contents.clone()))
+		);
+		assert_eq!(
+			LayerStoreFS::virtual_diff_read_link(&entries, std::slice::from_ref(&link_name)),
+			Some(Bytes::from(target.clone()))
+		);
+		let dir_entries =
+			LayerStoreFS::virtual_diff_dir_entries(&entries, &["bin".into()]).expect("dir entries");
+		assert_eq!(dir_entries.len(), 1);
+		assert!(LayerStoreFS::virtual_diff_dir_entries(&entries, &["missing".into()]).is_none());
+		let merged = LayerStoreFS::merge_dir_entries(
+			Some(vec![DirectoryEntry {
+				kind: FileType::Directory,
+				name: OsString::from("bin"),
+				offset: 1,
+			}]),
+			Some(vec![DirectoryEntry {
+				kind: FileType::RegularFile,
+				name: OsString::from(file_name),
+				offset: 1,
+			}]),
+		)
+		.expect("merged entries");
+		assert_eq!(merged.len(), 2);
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn metadata_helpers_report_types_and_permissions(tc: hegel::TestCase) {
+		let file_bytes = tc.draw(generators::binary());
+		smol::block_on(async {
+			let dir = tempfile::tempdir().expect("tempdir should exist");
+			let file = dir.path().join("file");
+			let subdir = dir.path().join("dir");
+			let link = dir.path().join("link");
+			std::fs::write(&file, &file_bytes).expect("file should be written");
+			std::fs::create_dir(&subdir).expect("dir should be created");
+			unix_fs::symlink("file", &link).expect("symlink should be created");
+			let file_meta = std::fs::symlink_metadata(&file).expect("file metadata");
+			let dir_meta = std::fs::symlink_metadata(&subdir).expect("dir metadata");
+			let link_meta = std::fs::symlink_metadata(&link).expect("link metadata");
+			assert_eq!(
+				LayerStoreFS::attr_from_metadata(&file_meta).kind,
+				FileType::RegularFile
+			);
+			assert_eq!(
+				LayerStoreFS::attr_from_metadata(&dir_meta).kind,
+				FileType::Directory
+			);
+			assert_eq!(
+				LayerStoreFS::attr_from_metadata(&link_meta).kind,
+				FileType::Symlink
+			);
+			assert_eq!(
+				LayerStoreFS::file_type_from_metadata(&file_meta),
+				FileType::RegularFile
+			);
+			assert_eq!(
+				LayerStoreFS::file_type_from_metadata(&dir_meta),
+				FileType::Directory
+			);
+			assert_eq!(
+				LayerStoreFS::file_type_from_metadata(&link_meta),
+				FileType::Symlink
+			);
+		})
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn diff_helpers_use_empty_and_host_projection_roots(tc: hegel::TestCase) {
+		let host_bytes = tc.draw(generators::binary());
+		smol::block_on(async {
+			let fs = dummy_fs();
+			let empty = LayerStoreDiff::default();
+			assert_eq!(
+				fs.diff_entry_attr(&empty, &[])
+					.await
+					.expect("root attr")
+					.kind,
+				FileType::Directory
+			);
+			assert!(
+				fs.diff_entry_attr(&empty, &["missing".into()])
+					.await
+					.is_none()
+			);
+			assert_eq!(fs.diff_dir_entries(&empty, &[]).await, Some(Vec::new()));
+			assert!(
+				fs.diff_dir_entries(&empty, &["missing".into()])
+					.await
+					.is_none()
+			);
+
+			let dir = tempfile::tempdir().expect("tempdir should exist");
+			let root = dir.path().join("proj");
+			std::fs::create_dir_all(root.join("nested")).expect("nested dir should exist");
+			std::fs::write(root.join("nested/file"), &host_bytes).expect("host file should exist");
+			unix_fs::symlink("file", root.join("nested/link")).expect("host symlink should exist");
+			let diff = LayerStoreDiff {
+				tar_entries: Vec::new(),
+				host_projection_roots: vec![root.clone()],
+			};
+			let root_components = LayerStoreFS::virtual_root_components(&root);
+			assert_eq!(
+				LayerStoreFS::host_diff_entry_attr(&diff.host_projection_roots, &root_components)
+					.await
+					.expect("host root attr")
+					.kind,
+				FileType::Directory
+			);
+			let file_relative = root_components
+				.iter()
+				.cloned()
+				.chain(["nested".to_owned(), "file".to_owned()])
+				.collect::<Vec<_>>();
+			assert_eq!(
+				LayerStoreFS::host_diff_read_bytes(&diff.host_projection_roots, &file_relative)
+					.await,
+				Some(Bytes::from(host_bytes.clone()))
+			);
+			let link_relative = root_components
+				.iter()
+				.cloned()
+				.chain(["nested".to_owned(), "link".to_owned()])
+				.collect::<Vec<_>>();
+			assert_eq!(
+				LayerStoreFS::host_diff_read_link(&diff.host_projection_roots, &link_relative)
+					.await,
+				Some(Bytes::from_static(b"file"))
+			);
+			let nested_relative = root_components
+				.iter()
+				.cloned()
+				.chain(["nested".to_owned()])
+				.collect::<Vec<_>>();
+			assert!(
+				LayerStoreFS::host_diff_dir_entries(&diff.host_projection_roots, &nested_relative)
+					.await
+					.expect("host dir entries")
+					.len() >= 2
+			);
+			assert_eq!(
+				fs.diff_read_bytes(&diff, &file_relative).await,
+				Some(Bytes::from(host_bytes))
+			);
+			assert_eq!(
+				fs.diff_read_link(&diff, &link_relative).await,
+				Some(Bytes::from_static(b"file"))
+			);
+			assert!(fs.diff_dir_entries(&diff, &nested_relative).await.is_some());
+		})
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn diff_helpers_prefer_virtual_entries_over_host_projection(tc: hegel::TestCase) {
+		let virtual_bytes = tc.draw(generators::binary());
+		let host_bytes = tc.draw(generators::binary());
+		let perm = tc.draw(generators::integers::<u16>());
+		smol::block_on(async {
+			let fs = dummy_fs();
+			let dir = tempfile::tempdir().expect("tempdir should exist");
+			let root = dir.path().join("root");
+			std::fs::create_dir_all(root.join("bin")).expect("bin dir should exist");
+			std::fs::write(root.join("bin/app"), &host_bytes).expect("host app should exist");
+			let diff = LayerStoreDiff {
+				tar_entries: vec![regular_entry("bin/app", perm, &virtual_bytes)],
+				host_projection_roots: vec![root.clone()],
+			};
+			assert_eq!(
+				fs.diff_read_bytes(&diff, &["bin".into(), "app".into()])
+					.await,
+				Some(Bytes::from(virtual_bytes.clone()))
+			);
+			assert_eq!(
+				fs.diff_entry_attr(&diff, &["bin".into(), "app".into()])
+					.await
+					.expect("virtual attr")
+					.perm,
+				if perm == 0 { 0o444 } else { perm }
+			);
+		})
+	}
+
+	fn seeded_fs_with_image() -> (LayerStoreFS, String, String) {
+		let encoded_ref = "encoded-ref".to_owned();
+		let layer_key = "sha256:layer-a".to_owned();
+		let duplicate_key = "sha256:dup".to_owned();
+		let resolver = Arc::new(LayerStoreResolver::new());
+		resolver.insert_image_for_test(LayerStoreImage {
+			encoded_ref: encoded_ref.clone(),
+			layers: vec![
+				LayerStoreLayer {
+					keys: vec![layer_key.clone(), duplicate_key.clone()],
+					info: Bytes::from_static(b"info"),
+					blob: Bytes::from_static(b"blob"),
+					diff: LayerStoreDiff::default(),
+				},
+				LayerStoreLayer {
+					keys: vec![duplicate_key],
+					info: Bytes::from_static(b"info2"),
+					blob: Bytes::from_static(b"blob2"),
+					diff: LayerStoreDiff::default(),
+				},
+			],
+		});
+		(LayerStoreFS::new(resolver), encoded_ref, layer_key)
+	}
+
+	#[test]
+	fn store_entry_and_directory_helpers_cover_root_image_layer_and_diff_paths() {
+		smol::block_on(async {
+			let (fs, encoded_ref, layer_key) = seeded_fs_with_image();
+			let image_path = format!("/{encoded_ref}");
+			let layer_path = format!("/{encoded_ref}/{layer_key}");
+			let info_path = format!("/{encoded_ref}/{layer_key}/info");
+			let use_path = format!("/{encoded_ref}/{layer_key}/use");
+			let diff_path = format!("/{encoded_ref}/{layer_key}/diff");
+			let diff_missing_path = format!("/{encoded_ref}/{layer_key}/diff/missing");
+
+			assert_eq!(fs.file_count_hint().await, 10);
+			assert_eq!(
+				fs.entry_attr(OsStr::new("/"))
+					.await
+					.expect("root attr")
+					.kind,
+				FileType::Directory
+			);
+			assert_eq!(
+				fs.entry_attr(OsStr::new(&image_path))
+					.await
+					.expect("image attr")
+					.kind,
+				FileType::Directory
+			);
+			assert_eq!(
+				fs.entry_attr(OsStr::new(&layer_path))
+					.await
+					.expect("layer attr")
+					.kind,
+				FileType::Directory
+			);
+			assert_eq!(
+				fs.entry_attr(OsStr::new(&info_path))
+					.await
+					.expect("info attr")
+					.size,
+				4
+			);
+			assert_eq!(
+				fs.read_bytes(OsStr::new(&info_path)).await,
+				Some(Bytes::from_static(b"info"))
+			);
+			assert_eq!(fs.read_bytes(OsStr::new(&use_path)).await, None);
+			assert_eq!(fs.read_bytes(OsStr::new("/")).await, None);
+			assert_eq!(fs.read_link(OsStr::new(&info_path)).await, None);
+			assert_eq!(fs.read_link(OsStr::new(&image_path)).await, None);
+
+			let root_entries = fs.dir_entries(OsStr::new("/")).await.expect("root entries");
+			assert_eq!(root_entries.len(), 1);
+			assert_eq!(root_entries[0].name, OsString::from(encoded_ref.clone()));
+			let image_entries = fs
+				.dir_entries(OsStr::new(&image_path))
+				.await
+				.expect("image entries");
+			assert_eq!(image_entries.len(), 2);
+			let layer_entries = fs
+				.dir_entries(OsStr::new(&layer_path))
+				.await
+				.expect("layer entries");
+			assert_eq!(layer_entries.len(), 3);
+			assert_eq!(
+				fs.dir_entries(OsStr::new(&diff_path)).await,
+				Some(Vec::new())
+			);
+			assert_eq!(fs.dir_entries(OsStr::new(&diff_missing_path)).await, None);
+			assert_eq!(fs.dir_entries(OsStr::new(&use_path)).await, None);
+			assert_eq!(fs.dir_entries(OsStr::new("/missing")).await, None);
+		});
+	}
+
+	#[test]
+	fn virtual_and_host_diff_helpers_cover_missing_and_non_file_non_link_paths() {
+		smol::block_on(async {
+			let entries = vec![
+				directory_entry("a/dir", 0o755),
+				symlink_entry("a/link", "target"),
+				regular_entry("a/deep/file", 0o644, b"v"),
+			];
+			assert_eq!(
+				LayerStoreFS::virtual_diff_entry_attr(&entries, &["a".to_owned()])
+					.expect("prefix should appear as directory")
+					.kind,
+				FileType::Directory
+			);
+			assert_eq!(
+				LayerStoreFS::virtual_diff_read_bytes(
+					&entries,
+					&["a".to_owned(), "dir".to_owned()]
+				),
+				None
+			);
+			assert_eq!(
+				LayerStoreFS::virtual_diff_read_link(&entries, &["a".to_owned(), "dir".to_owned()]),
+				None
+			);
+			let virtual_dir = LayerStoreFS::virtual_diff_dir_entries(&entries, &["a".to_owned()])
+				.expect("virtual dir entries");
+			assert!(virtual_dir.iter().any(|entry| {
+				entry.name == OsString::from("deep") && entry.kind == FileType::Directory
+			}));
+			assert_eq!(LayerStoreFS::merge_dir_entries(None, None), None);
+			assert!(
+				LayerStoreFS::merge_dir_entries(
+					None,
+					Some(vec![DirectoryEntry {
+						kind: FileType::RegularFile,
+						name: OsString::from("x"),
+						offset: 1,
+					}]),
+				)
+				.is_some()
+			);
+
+			let dir = tempfile::tempdir().expect("tempdir should exist");
+			let root = dir.path().join("root");
+			std::fs::create_dir_all(root.join("nested")).expect("nested dir should exist");
+			std::fs::write(root.join("file"), b"bytes").expect("file should exist");
+			let root_components = LayerStoreFS::virtual_root_components(&root);
+			let nested_relative = root_components
+				.iter()
+				.cloned()
+				.chain(["nested".to_owned()])
+				.collect::<Vec<_>>();
+			let file_relative = root_components
+				.iter()
+				.cloned()
+				.chain(["file".to_owned()])
+				.collect::<Vec<_>>();
+			assert_eq!(
+				LayerStoreFS::host_diff_read_bytes(&[root.clone()], &nested_relative).await,
+				None
+			);
+			assert_eq!(
+				LayerStoreFS::host_diff_read_link(&[root.clone()], &file_relative).await,
+				None
+			);
+
+			let missing_root = dir.path().join("missing-root").join("leaf");
+			let missing_components = LayerStoreFS::virtual_root_components(&missing_root);
+			let missing_parent = missing_components[..missing_components.len() - 1].to_vec();
+			let missing_dir_entries = LayerStoreFS::host_diff_dir_entries(
+				std::slice::from_ref(&missing_root),
+				&missing_parent,
+			)
+			.await
+			.expect("missing root parent should still produce virtual directory entry");
+			assert_eq!(missing_dir_entries.len(), 1);
+			assert_eq!(missing_dir_entries[0].kind, FileType::Directory);
+			assert_eq!(
+				LayerStoreFS::host_diff_dir_entries(&[root], &["nope".to_owned()]).await,
+				None
+			);
+		});
+	}
+}
