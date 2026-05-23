@@ -10,6 +10,10 @@ use std::time::{Duration, Instant};
 use nix_storage_plugin::encode_flake_ref;
 use tempfile::TempDir;
 
+fn keep_tmp_enabled() -> bool {
+	std::env::var("NSP_E2E_KEEP_TMP").is_ok_and(|value| value == "1")
+}
+
 struct ChildGuard {
 	child: Child,
 }
@@ -27,6 +31,9 @@ impl ChildGuard {
 
 impl Drop for ChildGuard {
 	fn drop(&mut self) {
+		if keep_tmp_enabled() {
+			return;
+		}
 		let pid = self.child.id() as i32;
 		unsafe {
 			libc::kill(pid, libc::SIGTERM);
@@ -44,7 +51,7 @@ impl Drop for ChildGuard {
 }
 
 struct E2eEnv {
-	_tempdir: TempDir,
+	tempdir: Option<TempDir>,
 	home_dir: PathBuf,
 	runtime_dir: PathBuf,
 	mount_path: PathBuf,
@@ -97,7 +104,7 @@ impl E2eEnv {
 		.expect("registries.conf should be written");
 
 		Self {
-			_tempdir: tempdir,
+			tempdir: Some(tempdir),
 			home_dir,
 			runtime_dir,
 			mount_path,
@@ -144,6 +151,19 @@ impl E2eEnv {
 		let mut command = self.child_command(program);
 		command.args(args);
 		command.output().expect("command should run")
+	}
+}
+
+impl Drop for E2eEnv {
+	fn drop(&mut self) {
+		if !keep_tmp_enabled() {
+			return;
+		}
+		if let Some(tempdir) = self.tempdir.take() {
+			let path = tempdir.path().to_path_buf();
+			std::mem::forget(tempdir);
+			eprintln!("NSP_E2E_KEEP_TMP=1 keeping test dir: {}", path.display());
+		}
 	}
 }
 
