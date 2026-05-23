@@ -347,10 +347,19 @@ mod tests {
 	fn encode_rejects_unsupported_protocols_and_missing_paths(tc: hegel::TestCase) {
 		let unsupported = format!(
 			"{}:{}",
-			tc.draw(generators::from_regex(r"[a-z]{2,12}").fullmatch(true).filter(
-				|value| !["github", "tarball+https", "tarball+http", "git+https", "git+http", "git+ssh"]
-					.contains(&value.as_str()),
-			)),
+			tc.draw(
+				generators::from_regex(r"[a-z]{2,12}")
+					.fullmatch(true)
+					.filter(|value| ![
+						"github",
+						"tarball+https",
+						"tarball+http",
+						"git+https",
+						"git+http",
+						"git+ssh"
+					]
+					.contains(&value.as_str()),)
+			),
 			tc.draw(generators::from_regex(r"[A-Za-z0-9._/-]{1,16}").fullmatch(true)),
 		);
 		let missing_path = tc.draw(generators::sampled_from(vec![

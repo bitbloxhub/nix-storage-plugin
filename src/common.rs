@@ -90,7 +90,10 @@ pub fn sha256_blob_file_name(digest: &str) -> Option<&str> {
 }
 
 pub fn sha256_digest(bytes: impl AsRef<[u8]>) -> String {
-	format!("sha256:{}", base16ct::lower::encode_string(&Sha256::digest(bytes.as_ref())))
+	format!(
+		"sha256:{}",
+		base16ct::lower::encode_string(&Sha256::digest(bytes.as_ref()))
+	)
 }
 
 pub fn simple_response(status: StatusCode, body: Bytes, empty: bool) -> Response<Full<Bytes>> {

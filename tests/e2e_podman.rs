@@ -245,7 +245,6 @@ fn split_command_args(value: Option<String>) -> Vec<OsString> {
 		.collect()
 }
 
-
 fn wait_for_registry(addr: SocketAddr) {
 	let deadline = Instant::now() + Duration::from_secs(15);
 	while Instant::now() < deadline {
