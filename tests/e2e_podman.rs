@@ -337,6 +337,9 @@ fn pull_image_with_retry(env: &E2eEnv, image: &str) -> std::process::Output {
 #[test]
 #[cfg_attr(no_test_network, ignore = "NO_TEST_NETWORK is set")]
 fn podman_runs_nix_image() {
+	let prebuild_flake = std::env::var("NSP_E2E_NIX_IMAGE_REMOTE_PREBUILD_FLAKE")
+		.unwrap_or_else(|_| "github:pdtpartners/nix-snapshotter#image-redisWithShell".to_owned());
+	let _ = nix_out_path(prebuild_flake);
 	let env = E2eEnv::new();
 	let _mount = start_mount_store(&env);
 	let image = std::env::var("NSP_E2E_NIX_IMAGE_REMOTE")
