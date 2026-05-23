@@ -1,6 +1,6 @@
 # cargo-llvm-cov docs: set `LLVM_COV`/`LLVM_PROFDATA` when `llvm-tools-preview` is not in default toolchain
 # fenix docs: nightly `default` may omit `llvm-tools-preview`, but `complete` exposes it as a separate component
-_: {
+{
   flake-file.inputs = {
     fenix = {
       url = "github:nix-community/fenix";
@@ -12,12 +12,11 @@ _: {
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "";
       inputs.flake-parts.follows = "flake-parts";
-      inputs.crate2nix_stable.follows = "crate2nix";
       inputs.cachix.follows = "";
     };
 
     hegel = {
-      url = "github:hegeldev/hegel-core?ref=v0.4.1&dir=nix";
+      url = "github:hegeldev/hegel-core?ref=v0.9.1&dir=nix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "";
     };

@@ -12,7 +12,6 @@
       url = "github:nix-community/crate2nix";
       inputs = {
         cachix.follows = "";
-        crate2nix_stable.follows = "crate2nix";
         flake-compat.follows = "";
         flake-parts.follows = "flake-parts";
         nixpkgs.follows = "nixpkgs";
@@ -32,7 +31,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hegel = {
-      url = "github:hegeldev/hegel-core?ref=v0.4.1&dir=nix";
+      url = "github:hegeldev/hegel-core?ref=v0.9.1&dir=nix";
       inputs = {
         flake-compat.follows = "";
         nixpkgs.follows = "nixpkgs";

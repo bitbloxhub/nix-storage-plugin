@@ -1,4 +1,3 @@
-_:
 let
   alsFirstPatchUrl = "https://github.com/bitbloxhub/container-libs/commit/75e979d6aba85c2699ef6e7bf01a214b48025911.patch";
 
