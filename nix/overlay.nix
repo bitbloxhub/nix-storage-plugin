@@ -1,10 +1,31 @@
+{ self, ... }:
 let
   alsFirstPatchUrl = "https://github.com/bitbloxhub/container-libs/commit/75e979d6aba85c2699ef6e7bf01a214b48025911.patch";
 
   defaultOverlay =
-    final: prev:
+    _final: prev:
     let
-      imagePatch = prev.fetchpatch {
+      system = prev.stdenv.hostPlatform.system;
+    in
+    {
+      podman = self.packages.${system}.podman;
+      cri-o-unwrapped = self.packages.${system}.cri-o-unwrapped;
+      cri-o = self.packages.${system}.cri-o;
+      buildah-unwrapped = self.packages.${system}.buildah-unwrapped;
+      buildah = self.packages.${system}.buildah;
+      skopeo = self.packages.${system}.skopeo;
+    };
+in
+{
+  flake.overlays.default = defaultOverlay;
+
+  perSystem =
+    {
+      pkgs,
+      ...
+    }:
+    let
+      imagePatch = pkgs.fetchpatch {
         url = alsFirstPatchUrl;
         hash = "sha256-L7Pysl4YbD/ThroJbrk+OqyRl7je1wENJzOkdTK2aLs=";
         relative = "image";
@@ -12,7 +33,7 @@ let
         excludes = [ "*_test.go" ];
       };
 
-      storagePatch = prev.fetchpatch {
+      storagePatch = pkgs.fetchpatch {
         url = alsFirstPatchUrl;
         hash = "sha256-Xw9of20n1fl418V2XmkUkzBn1DlBZSRhoQzMP/wpzsE=";
         relative = "storage";
@@ -33,33 +54,22 @@ let
             patch --batch -p1 < ${storagePatch}
           '';
         });
-    in
-    {
-      podman = patchContainerLibs prev.podman;
 
-      cri-o-unwrapped = patchContainerLibs prev.cri-o-unwrapped;
-      cri-o = prev.cri-o.override {
-        inherit (final) cri-o-unwrapped;
-      };
+      patchedPkgs = pkgs.extend (final: prev: {
+        podman = patchContainerLibs prev.podman;
 
-      buildah-unwrapped = patchContainerLibs prev.buildah-unwrapped;
-      buildah = prev.buildah.override {
-        inherit (final) buildah-unwrapped;
-      };
+        cri-o-unwrapped = patchContainerLibs prev.cri-o-unwrapped;
+        cri-o = prev.cri-o.override {
+          inherit (final) cri-o-unwrapped;
+        };
 
-      skopeo = patchContainerLibs prev.skopeo;
-    };
-in
-{
-  flake.overlays.default = defaultOverlay;
+        buildah-unwrapped = patchContainerLibs prev.buildah-unwrapped;
+        buildah = prev.buildah.override {
+          inherit (final) buildah-unwrapped;
+        };
 
-  perSystem =
-    {
-      pkgs,
-      ...
-    }:
-    let
-      patchedPkgs = pkgs.extend defaultOverlay;
+        skopeo = patchContainerLibs prev.skopeo;
+      });
     in
     {
       packages = {
