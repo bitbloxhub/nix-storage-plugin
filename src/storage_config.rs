@@ -487,7 +487,12 @@ mod tests {
 			storage_config_path,
 		);
 
-		assert_eq!(result, PathBuf::from(SYSTEM_STORAGE_CONF));
+		let expected = if PathBuf::from(OVERRIDE_STORAGE_CONF).exists() {
+			PathBuf::from(OVERRIDE_STORAGE_CONF)
+		} else {
+			PathBuf::from(SYSTEM_STORAGE_CONF)
+		};
+		assert_eq!(result, expected);
 	}
 
 	#[hegel::test(derandomize = true)]
