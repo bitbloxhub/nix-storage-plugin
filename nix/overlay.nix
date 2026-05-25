@@ -1,6 +1,6 @@
 { self, ... }:
 let
-  alsFirstPatchUrl = "https://github.com/bitbloxhub/container-libs/commit/75e979d6aba85c2699ef6e7bf01a214b48025911.patch";
+  alsFirstPatchUrl = "https://github.com/bitbloxhub/container-libs/commit/1c9838fc674b59b204b35d218767f1f103d884a7.patch";
 
   defaultOverlay =
     _final: prev:
@@ -35,7 +35,7 @@ in
 
       storagePatch = pkgs.fetchpatch {
         url = alsFirstPatchUrl;
-        hash = "sha256-Xw9of20n1fl418V2XmkUkzBn1DlBZSRhoQzMP/wpzsE=";
+        hash = "sha256-bpbyLEv4sgEABOBnkLcEnX3DcCLp2BU82jh8LW+M9Fg=";
         relative = "storage";
         extraPrefix = "vendor/go.podman.io/storage/";
         excludes = [ "*_test.go" ];
