@@ -55,21 +55,23 @@ in
           '';
         });
 
-      patchedPkgs = pkgs.extend (final: prev: {
-        podman = patchContainerLibs prev.podman;
+      patchedPkgs = pkgs.extend (
+        final: prev: {
+          podman = patchContainerLibs prev.podman;
 
-        cri-o-unwrapped = patchContainerLibs prev.cri-o-unwrapped;
-        cri-o = prev.cri-o.override {
-          inherit (final) cri-o-unwrapped;
-        };
+          cri-o-unwrapped = patchContainerLibs prev.cri-o-unwrapped;
+          cri-o = prev.cri-o.override {
+            inherit (final) cri-o-unwrapped;
+          };
 
-        buildah-unwrapped = patchContainerLibs prev.buildah-unwrapped;
-        buildah = prev.buildah.override {
-          inherit (final) buildah-unwrapped;
-        };
+          buildah-unwrapped = patchContainerLibs prev.buildah-unwrapped;
+          buildah = prev.buildah.override {
+            inherit (final) buildah-unwrapped;
+          };
 
-        skopeo = patchContainerLibs prev.skopeo;
-      });
+          skopeo = patchContainerLibs prev.skopeo;
+        }
+      );
     in
     {
       packages = {
