@@ -81,6 +81,8 @@ async fn mount_store(mount_path: PathBuf) -> Result<(), NixStoragePluginError> {
 	mount_options
 		.uid(uid.into())
 		.gid(gid.into())
+		.allow_other(true)
+		.default_permissions(true)
 		.fs_name("nix-storage-plugin-layer-store");
 
 	let fs = LayerStoreFS::new(Arc::new(LayerStoreResolver::new()));

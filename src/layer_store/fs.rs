@@ -275,17 +275,11 @@ impl LayerStoreFS {
 	async fn entry_attr(&self, path: &OsStr) -> Option<fuse3::path::reply::FileAttr> {
 		match Self::parse_path(path)? {
 			StorePath::Root => Some(Self::root_attr()),
-			StorePath::Image { encoded_ref } => self
-				.lookup_image(&encoded_ref)
-				.await
-				.map(|_| dir_attr(0o555)),
+			StorePath::Image { encoded_ref } => self.lookup_image(&encoded_ref).await.map(|_| dir_attr(0o555)),
 			StorePath::Layer {
 				encoded_ref,
 				layer_key,
-			} => self
-				.lookup_layer(&encoded_ref, &layer_key)
-				.await
-				.map(|_| dir_attr(0o555)),
+			} => self.lookup_layer(&encoded_ref, &layer_key).await.map(|_| dir_attr(0o555)),
 			StorePath::LayerEntry {
 				encoded_ref,
 				layer_key,
@@ -720,11 +714,11 @@ impl PathFilesystem for LayerStoreFS {
 		name: &OsStr,
 	) -> fuse3::Result<ReplyEntry> {
 		let path = Self::path_from_parent(parent, name);
+		let path_display = path.to_string_lossy().into_owned();
 
-		self.entry_attr(&path)
-			.await
-			.map(|attr| ReplyEntry { ttl: TTL, attr })
-			.ok_or_else(|| libc::ENOENT.into())
+		let result = self.entry_attr(&path).await.map(|attr| ReplyEntry { ttl: TTL, attr });
+		tracing::info!(path = %path_display, found = result.is_some(), "als handler lookup");
+		result.ok_or_else(|| libc::ENOENT.into())
 	}
 
 	async fn getattr(
@@ -735,23 +729,27 @@ impl PathFilesystem for LayerStoreFS {
 		_flags: u32,
 	) -> fuse3::Result<ReplyAttr> {
 		let path = path.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
-		let attr = self
-			.entry_attr(path)
-			.await
-			.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
+		let path_display = path.to_string_lossy().into_owned();
+		let attr = self.entry_attr(path).await;
+		tracing::info!(path = %path_display, found = attr.is_some(), "als handler getattr");
+		let attr = attr.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
 
 		Ok(ReplyAttr { ttl: TTL, attr })
 	}
 
 	async fn readlink(&self, _req: Request, path: &OsStr) -> fuse3::Result<ReplyData> {
-		self.read_link(path)
-			.await
-			.map(|data| ReplyData { data })
+		let path_display = path.to_string_lossy().into_owned();
+		let data = self.read_link(path).await;
+		tracing::info!(path = %path_display, found = data.is_some(), "als handler readlink");
+		data.map(|data| ReplyData { data })
 			.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))
 	}
 
 	async fn open(&self, _req: Request, path: &OsStr, _flags: u32) -> fuse3::Result<ReplyOpen> {
-		if self.read_bytes(path).await.is_none() {
+		let path_display = path.to_string_lossy().into_owned();
+		let found = self.read_bytes(path).await.is_some();
+		tracing::info!(path = %path_display, found, "als handler open");
+		if !found {
 			return Err(libc::EISDIR.into());
 		}
 
@@ -767,10 +765,10 @@ impl PathFilesystem for LayerStoreFS {
 		size: u32,
 	) -> fuse3::Result<ReplyData> {
 		let path = path.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
-		let bytes = self
-			.read_bytes(path)
-			.await
-			.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
+		let path_display = path.to_string_lossy().into_owned();
+		let bytes = self.read_bytes(path).await;
+		tracing::info!(path = %path_display, found = bytes.is_some(), size = bytes.as_ref().map(|value| value.len()), "als handler read");
+		let bytes = bytes.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
 		let offset = offset as usize;
 		let end = offset.saturating_add(size as usize).min(bytes.len());
 
@@ -784,7 +782,10 @@ impl PathFilesystem for LayerStoreFS {
 	}
 
 	async fn opendir(&self, _req: Request, path: &OsStr, _flags: u32) -> fuse3::Result<ReplyOpen> {
-		if self.dir_entries(path).await.is_none() {
+		let path_display = path.to_string_lossy().into_owned();
+		let found = self.dir_entries(path).await.is_some();
+		tracing::info!(path = %path_display, found, "als handler opendir");
+		if !found {
 			return Err(libc::ENOTDIR.into());
 		}
 
@@ -802,10 +803,10 @@ impl PathFilesystem for LayerStoreFS {
 			impl futures_util::stream::Stream<Item = fuse3::Result<DirectoryEntry>> + Send + 'a,
 		>,
 	> {
-		let entries = self
-			.dir_entries(path)
-			.await
-			.ok_or_else(|| fuse3::Errno::from(libc::ENOTDIR))?;
+		let path_display = path.to_string_lossy().into_owned();
+		let entries = self.dir_entries(path).await;
+		tracing::info!(path = %path_display, found = entries.is_some(), entry_count = entries.as_ref().map(|value| value.len()), offset, "als handler readdir");
+		let entries = entries.ok_or_else(|| fuse3::Errno::from(libc::ENOTDIR))?;
 		let start = offset.max(0) as usize;
 		let sliced = if start >= entries.len() {
 			Vec::new()
@@ -830,10 +831,10 @@ impl PathFilesystem for LayerStoreFS {
 			impl futures_util::stream::Stream<Item = fuse3::Result<DirectoryEntryPlus>> + Send + 'a,
 		>,
 	> {
-		let entries = self
-			.dir_entries(path)
-			.await
-			.ok_or_else(|| fuse3::Errno::from(libc::ENOTDIR))?;
+		let path_display = path.to_string_lossy().into_owned();
+		let entries = self.dir_entries(path).await;
+		tracing::info!(path = %path_display, found = entries.is_some(), entry_count = entries.as_ref().map(|value| value.len()), offset, "als handler readdirplus");
+		let entries = entries.ok_or_else(|| fuse3::Errno::from(libc::ENOTDIR))?;
 		let start = offset as usize;
 		let sliced = if start >= entries.len() {
 			Vec::new()
@@ -843,10 +844,7 @@ impl PathFilesystem for LayerStoreFS {
 		let mut plus_entries = Vec::with_capacity(sliced.len());
 		for entry in sliced {
 			let entry_path = Self::path_from_parent(path, &entry.name);
-			let attr = self
-				.entry_attr(&entry_path)
-				.await
-				.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
+			let attr = self.entry_attr(&entry_path).await.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
 
 			plus_entries.push(DirectoryEntryPlus {
 				kind: entry.kind,
@@ -889,7 +887,10 @@ impl PathFilesystem for LayerStoreFS {
 	}
 
 	async fn access(&self, _req: Request, path: &OsStr, _mask: u32) -> fuse3::Result<()> {
-		if self.entry_attr(path).await.is_some() {
+		let path_display = path.to_string_lossy().into_owned();
+		let found = self.entry_attr(path).await.is_some();
+		tracing::info!(path = %path_display, found, "als fs access");
+		if found {
 			Ok(())
 		} else {
 			Err(libc::ENOENT.into())
