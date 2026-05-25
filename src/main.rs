@@ -81,12 +81,38 @@ async fn mount_store(mount_path: PathBuf) -> Result<(), NixStoragePluginError> {
 	mount_options
 		.uid(uid.into())
 		.gid(gid.into())
-		.fs_name("nix-storage-plugin-layer-store");
+		.fs_name("nix-storage-plugin-layer-store")
+		.allow_other(true)
+		.default_permissions(true);
 
-	let fs = LayerStoreFS::new(Arc::new(LayerStoreResolver::new()));
-	let handle = Session::new(mount_options)
-		.mount_with_unprivileged(fs, mount_path)
-		.await?;
+	let handle = match Session::new(mount_options)
+		.mount_with_unprivileged(
+			LayerStoreFS::new(Arc::new(LayerStoreResolver::new())),
+			mount_path.clone(),
+		)
+		.await
+	{
+		Ok(handle) => handle,
+		Err(error) if should_retry_mount_without_allow_other(&error) => {
+			tracing::warn!(
+				error = %error,
+				"allow_other/default_permissions not permitted; retrying mount without those options"
+			);
+			let mut fallback_mount_options = MountOptions::default();
+			fallback_mount_options
+				.uid(uid.into())
+				.gid(gid.into())
+				.fs_name("nix-storage-plugin-layer-store");
+
+			Session::new(fallback_mount_options)
+				.mount_with_unprivileged(
+					LayerStoreFS::new(Arc::new(LayerStoreResolver::new())),
+					mount_path,
+				)
+				.await?
+		}
+		Err(error) => return Err(error.into()),
+	};
 
 	let mut signals = Signals::new([Signal::Term, Signal::Quit, Signal::Int])?;
 	if signals.next().await.is_some() {
@@ -94,6 +120,15 @@ async fn mount_store(mount_path: PathBuf) -> Result<(), NixStoragePluginError> {
 	}
 
 	Ok(())
+}
+
+fn should_retry_mount_without_allow_other(error: &std::io::Error) -> bool {
+	let message = error.to_string();
+	message.contains("allow_other")
+		|| message.contains("default_permissions")
+		|| message.contains("-o allow_other")
+		|| message.contains("unknown option")
+		|| message.contains("failed to open /etc/fuse.conf")
 }
 
 #[cfg(test)]
