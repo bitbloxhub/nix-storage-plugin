@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::{OsStr, OsString};
 use std::fs;
-use std::num::NonZeroU32;
+use std::num::{NonZeroU32, NonZeroUsize};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
@@ -14,6 +14,8 @@ use fuse3::path::prelude::{
 };
 use fuse3::raw::reply::{ReplyData, ReplyOpen, ReplyStatFs};
 use futures_util::stream;
+use lru::LruCache;
+use parking_lot::Mutex;
 
 use crate::common::{TTL, dir_attr, file_attr};
 use crate::metadata::{LayerDiffEntry, LayerDiffEntryKind};
@@ -42,14 +44,113 @@ enum StorePath {
 	},
 }
 
+#[derive(Debug)]
+struct FileReadCache {
+	cache: LruCache<PathBuf, Bytes>,
+	total_bytes: usize,
+	max_bytes: usize,
+}
+
+impl FileReadCache {
+	fn default_max_bytes() -> usize {
+		let mem_total_bytes = fs::read_to_string("/proc/meminfo")
+			.ok()
+			.and_then(|contents| {
+				contents.lines().find_map(|line| {
+					let rest = line.strip_prefix("MemTotal:")?.trim();
+					let kb = rest.split_whitespace().next()?.parse::<usize>().ok()?;
+					Some(kb.saturating_mul(1024))
+				})
+			});
+		let by_fraction = mem_total_bytes
+			.map(|bytes| bytes / 10)
+			.unwrap_or(512 * 1024 * 1024);
+		by_fraction.clamp(512 * 1024 * 1024, 8 * 1024 * 1024 * 1024)
+	}
+
+	fn default_max_entries(max_bytes: usize) -> usize {
+		let by_avg_file = max_bytes / (256 * 1024);
+		by_avg_file.max(1024)
+	}
+
+	fn from_env() -> Self {
+		let default_max_bytes = Self::default_max_bytes();
+		let max_bytes = std::env::var("NSP_READ_CACHE_MAX_BYTES")
+			.ok()
+			.and_then(|value| value.parse::<usize>().ok())
+			.unwrap_or(default_max_bytes);
+		let max_entries = std::env::var("NSP_READ_CACHE_MAX_ENTRIES")
+			.ok()
+			.and_then(|value| value.parse::<usize>().ok())
+			.unwrap_or_else(|| Self::default_max_entries(max_bytes));
+		let capacity = NonZeroUsize::new(max_entries).expect("cache entries must be non-zero");
+		Self {
+			cache: LruCache::new(capacity),
+			total_bytes: 0,
+			max_bytes,
+		}
+	}
+
+	fn get(&mut self, path: &Path) -> Option<Bytes> {
+		self.cache.get(path).cloned()
+	}
+
+	fn insert(&mut self, path: PathBuf, bytes: Bytes) {
+		if bytes.len() > self.max_bytes {
+			return;
+		}
+		if let Some(previous) = self.cache.put(path, bytes.clone()) {
+			self.total_bytes = self.total_bytes.saturating_sub(previous.len());
+		}
+		self.total_bytes = self.total_bytes.saturating_add(bytes.len());
+		while self.total_bytes > self.max_bytes {
+			let Some((_evicted_path, evicted)) = self.cache.pop_lru() else {
+				break;
+			};
+			self.total_bytes = self.total_bytes.saturating_sub(evicted.len());
+		}
+	}
+}
+
+#[derive(Debug, Clone)]
+struct TraceConfig {
+	enabled: bool,
+	path_contains: String,
+}
+
+impl TraceConfig {
+	fn from_env() -> Self {
+		let enabled = matches!(
+			std::env::var("NSP_TRACE_FUSE_IO").as_deref(),
+			Ok("1" | "true" | "TRUE" | "True")
+		);
+		let path_contains =
+			std::env::var("NSP_TRACE_FUSE_PATH_CONTAINS").unwrap_or_else(|_| "bin/crio".to_owned());
+		Self {
+			enabled,
+			path_contains,
+		}
+	}
+
+	fn matches_path(&self, path: &OsStr) -> bool {
+		self.enabled && path.to_string_lossy().contains(&self.path_contains)
+	}
+}
+
 #[derive(Clone)]
 pub struct LayerStoreFS {
 	backend: Arc<LayerStoreResolver>,
+	read_cache: Arc<Mutex<FileReadCache>>,
+	trace: Arc<TraceConfig>,
 }
 
 impl LayerStoreFS {
 	pub fn new(backend: Arc<LayerStoreResolver>) -> Self {
-		Self { backend }
+		Self {
+			backend,
+			read_cache: Arc::new(Mutex::new(FileReadCache::from_env())),
+			trace: Arc::new(TraceConfig::from_env()),
+		}
 	}
 
 	fn root_attr() -> fuse3::path::reply::FileAttr {
@@ -420,7 +521,8 @@ impl LayerStoreFS {
 		if let Some(bytes) = Self::virtual_diff_read_bytes(&diff.tar_entries, relative) {
 			Some(bytes)
 		} else {
-			Self::host_diff_read_bytes(&diff.host_projection_roots, relative).await
+			self.host_diff_read_bytes(&diff.host_projection_roots, relative)
+				.await
 		}
 	}
 
@@ -588,7 +690,7 @@ impl LayerStoreFS {
 		None
 	}
 
-	async fn host_diff_read_bytes(roots: &[PathBuf], relative: &[String]) -> Option<Bytes> {
+	async fn host_diff_read_bytes(&self, roots: &[PathBuf], relative: &[String]) -> Option<Bytes> {
 		for root in roots {
 			let root_components = Self::virtual_root_components(root);
 			if !Self::starts_with(relative, &root_components) {
@@ -597,9 +699,17 @@ impl LayerStoreFS {
 
 			let host_path = Self::host_path_from_virtual(root, relative);
 			let metadata = smol::fs::symlink_metadata(&host_path).await.ok()?;
-			if metadata.file_type().is_file() {
-				return smol::fs::read(host_path).await.ok().map(Bytes::from);
+			if !metadata.file_type().is_file() {
+				continue;
 			}
+
+			if let Some(bytes) = self.read_cache.lock().get(&host_path) {
+				return Some(bytes);
+			}
+
+			let bytes = smol::fs::read(&host_path).await.ok().map(Bytes::from)?;
+			self.read_cache.lock().insert(host_path, bytes.clone());
+			return Some(bytes);
 		}
 
 		None
@@ -750,11 +860,24 @@ impl PathFilesystem for LayerStoreFS {
 			.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))
 	}
 
-	async fn open(&self, _req: Request, path: &OsStr, _flags: u32) -> fuse3::Result<ReplyOpen> {
-		if self.read_bytes(path).await.is_none() {
-			return Err(libc::EISDIR.into());
+	async fn open(&self, _req: Request, path: &OsStr, flags: u32) -> fuse3::Result<ReplyOpen> {
+		let Some(attr) = self.entry_attr(path).await else {
+			return Err(libc::ENOENT.into());
+		};
+		if attr.kind != FileType::RegularFile {
+			return Err(match attr.kind {
+				FileType::Directory => libc::EISDIR.into(),
+				_ => libc::EACCES.into(),
+			});
 		}
 
+		if self.trace.matches_path(path) {
+			eprintln!(
+				"NSP OPEN path={} flags_in={:#x} reply_flags=0x0",
+				path.to_string_lossy(),
+				flags
+			);
+		}
 		Ok(ReplyOpen { fh: 0, flags: 0 })
 	}
 
@@ -767,20 +890,30 @@ impl PathFilesystem for LayerStoreFS {
 		size: u32,
 	) -> fuse3::Result<ReplyData> {
 		let path = path.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
+		let trace = self.trace.matches_path(path);
+		let started = std::time::Instant::now();
 		let bytes = self
 			.read_bytes(path)
 			.await
 			.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
 		let offset = offset as usize;
 		let end = offset.saturating_add(size as usize).min(bytes.len());
-
-		Ok(ReplyData {
-			data: if offset >= bytes.len() {
-				Bytes::new()
-			} else {
-				bytes.slice(offset..end)
-			},
-		})
+		let data = if offset >= bytes.len() {
+			Bytes::new()
+		} else {
+			bytes.slice(offset..end)
+		};
+		if trace {
+			eprintln!(
+				"NSP READ path={} off={} size={} got={} elapsed={:?}",
+				path.to_string_lossy(),
+				offset,
+				size,
+				data.len(),
+				started.elapsed()
+			);
+		}
+		Ok(ReplyData { data })
 	}
 
 	async fn opendir(&self, _req: Request, path: &OsStr, _flags: u32) -> fuse3::Result<ReplyOpen> {
@@ -1214,7 +1347,7 @@ mod tests {
 				.chain(["nested".to_owned(), "file".to_owned()])
 				.collect::<Vec<_>>();
 			assert_eq!(
-				LayerStoreFS::host_diff_read_bytes(&diff.host_projection_roots, &file_relative)
+				fs.host_diff_read_bytes(&diff.host_projection_roots, &file_relative)
 					.await,
 				Some(Bytes::from(host_bytes.clone()))
 			);
@@ -1437,7 +1570,8 @@ mod tests {
 				.chain(["file".to_owned()])
 				.collect::<Vec<_>>();
 			assert_eq!(
-				LayerStoreFS::host_diff_read_bytes(&[root.clone()], &nested_relative).await,
+				fs.host_diff_read_bytes(&[root.clone()], &nested_relative)
+					.await,
 				None
 			);
 			assert_eq!(

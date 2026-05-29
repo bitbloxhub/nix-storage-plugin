@@ -33,6 +33,8 @@ oci-spec = "0.9.0"
 procfs = "0.18.0"
 toml = "1.1.2"
 base16ct = { version = "1.0.0", features = ["alloc"] }
+lru = "0.12.5"
+parking_lot = "0.12.4"
 
 [dev-dependencies]
 hegel = { package = "hegeltest", version = "0.14.10" }
