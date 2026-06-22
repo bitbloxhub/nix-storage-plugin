@@ -17,7 +17,9 @@ use crate::metadata::{
 	ResolvedLayer,
 };
 use crate::nix::try_realize_nix_archive_path;
-use crate::nix_metadata::{NIX_STORE_PATH_PREFIX, ParsedNixMetadata, path_to_string};
+use crate::nix_metadata::{
+	NIX_CLOSURE_ANNOTATION_KEY, NIX_STORE_PATH_PREFIX, ParsedNixMetadata, path_to_string,
+};
 use crate::oci::{
 	archive_path_from_image_ref, containers_storage_ref, descriptor_annotations_btree,
 };
@@ -106,9 +108,14 @@ struct LocalStorageLayerRecord {
 
 pub(crate) async fn resolve_local_image(
 	image_ref: &str,
-) -> Result<ResolvedImage, NixStoragePluginError> {
+) -> Result<Option<ResolvedImage>, NixStoragePluginError> {
 	let manifest_raw = inspect_image_source_manifest_raw(image_ref).await?;
 	let manifest: ImageManifest = serde_json::from_str(&manifest_raw)?;
+
+	if !manifest_maybe_nix_backed(&manifest) {
+		return Ok(None);
+	}
+
 	let config: ImageConfiguration =
 		serde_json::from_str(&inspect_image_source_config_raw(image_ref).await?)?;
 	let exported_blobs = export_image_source_blobs(image_ref, manifest.layers()).await?;
@@ -127,14 +134,33 @@ pub(crate) async fn resolve_local_image(
 		)
 	}
 
-	Ok(ResolvedImage {
+	let image = ResolvedImage {
 		image_ref: image_ref.to_owned(),
 		encoded_ref: base64::engine::general_purpose::STANDARD.encode(image_ref),
 		manifest_digest: sha256_digest(manifest_raw.as_bytes()),
 		config_digest: manifest.config().digest().to_string(),
 		layers: resolved_layers,
 		command: image_command(&config),
-	})
+	};
+
+	if !image.is_nix_backed() {
+		return Ok(None);
+	}
+
+	Ok(Some(image))
+}
+
+fn manifest_maybe_nix_backed(manifest: &ImageManifest) -> bool {
+	manifest.layers().iter().any(layer_maybe_nix_backed)
+}
+
+fn layer_maybe_nix_backed(layer: &Descriptor) -> bool {
+	let annotations = descriptor_annotations_btree(layer);
+
+	annotations.contains_key(NIX_CLOSURE_ANNOTATION_KEY)
+		|| annotations
+			.keys()
+			.any(|key| key.starts_with(NIX_STORE_PATH_PREFIX))
 }
 
 pub(crate) fn projected_store_paths(layer: &ResolvedLayer) -> Vec<PathBuf> {
@@ -155,11 +181,11 @@ pub(crate) fn projected_store_paths(layer: &ResolvedLayer) -> Vec<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-	use std::collections::BTreeMap;
+	use std::collections::{BTreeMap, HashMap};
 
 	use super::*;
 	use hegel::generators::{self, Generator};
-	use oci_spec::image::{DescriptorBuilder, Digest, MediaType};
+	use oci_spec::image::{DescriptorBuilder, Digest, ImageManifest, MediaType};
 
 	fn store_path() -> impl hegel::generators::Generator<String> {
 		generators::from_regex(r"/nix/store/[A-Za-z0-9][A-Za-z0-9._+-]{0,23}").fullmatch(true)
@@ -390,6 +416,71 @@ mod tests {
 			.digest(digest.parse::<Digest>().expect("digest should parse"))
 			.build()
 			.expect("descriptor should build")
+	}
+
+	fn layer_descriptor_with_annotations(
+		digest: &str,
+		size: u64,
+		annotations: BTreeMap<String, String>,
+	) -> Descriptor {
+		DescriptorBuilder::default()
+			.media_type(MediaType::ImageLayer)
+			.size(size)
+			.digest(digest.parse::<Digest>().expect("digest should parse"))
+			.annotations(annotations.into_iter().collect::<HashMap<_, _>>())
+			.build()
+			.expect("descriptor should build")
+	}
+
+	fn manifest_with_layers(layers: Vec<Descriptor>) -> ImageManifest {
+		serde_json::from_value(serde_json::json!({
+			"schemaVersion": 2,
+			"config": {
+				"mediaType": "application/vnd.oci.image.config.v1+json",
+				"digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				"size": 1,
+			},
+			"layers": layers,
+		}))
+		.expect("manifest should parse")
+	}
+
+	#[test]
+	fn layer_maybe_nix_backed_detects_closure_annotation() {
+		let layer = layer_descriptor_with_annotations(
+			"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			1,
+			BTreeMap::from([(
+				NIX_CLOSURE_ANNOTATION_KEY.to_owned(),
+				"/nix/store/closure".to_owned(),
+			)]),
+		);
+
+		assert!(layer_maybe_nix_backed(&layer));
+	}
+
+	#[test]
+	fn manifest_maybe_nix_backed_rejects_ordinary_layers() {
+		let manifest = manifest_with_layers(vec![layer_descriptor(
+			"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			1,
+		)]);
+
+		assert!(!manifest_maybe_nix_backed(&manifest));
+	}
+
+	#[test]
+	fn manifest_maybe_nix_backed_accepts_legacy_store_path_annotations() {
+		let manifest = manifest_with_layers(vec![layer_descriptor_with_annotations(
+			"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			1,
+			BTreeMap::from([(
+				format!("{NIX_STORE_PATH_PREFIX}0"),
+				"/nix/store/example-path".to_owned(),
+			)]),
+		)]);
+
+		assert!(manifest_maybe_nix_backed(&manifest));
 	}
 
 	#[test]

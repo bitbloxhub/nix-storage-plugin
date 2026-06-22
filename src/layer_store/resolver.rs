@@ -58,12 +58,10 @@ impl LayerStoreResolver {
 	async fn resolve_image(&self, encoded_ref: &str) -> Option<LayerStoreImage> {
 		let image_ref = Self::decode_image_ref(encoded_ref)?;
 		match resolve_local_image(&image_ref).await {
-			Ok(image) => {
-				if !image.is_nix_backed() {
-					tracing::debug!(%image_ref, "skipping non-nix image in dynamic ALS backend");
-					return None;
-				}
-				Some(LayerStoreImage::from_resolved_image(image).await)
+			Ok(Some(image)) => Some(LayerStoreImage::from_resolved_image(image).await),
+			Ok(None) => {
+				tracing::debug!(%image_ref, "skipping non-nix image in dynamic ALS backend");
+				None
 			}
 			Err(error) => {
 				tracing::warn!(%error, %image_ref, "failed to resolve image for dynamic ALS backend");
