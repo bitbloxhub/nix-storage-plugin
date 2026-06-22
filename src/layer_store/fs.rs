@@ -1554,6 +1554,7 @@ mod tests {
 				.is_some()
 			);
 
+			let fs = dummy_fs();
 			let dir = tempfile::tempdir().expect("tempdir should exist");
 			let root = dir.path().join("root");
 			std::fs::create_dir_all(root.join("nested")).expect("nested dir should exist");
