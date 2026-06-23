@@ -1,8 +1,11 @@
 use std::collections::BTreeMap;
+use std::num::NonZeroUsize;
 use std::sync::RwLock;
 
 use base64::Engine as _;
 use bytes::Bytes;
+use lru::LruCache;
+use parking_lot::Mutex;
 use serde::Serialize;
 
 use crate::local_image::{projected_store_paths, resolve_local_image};
@@ -10,9 +13,23 @@ use crate::metadata::{ResolvedImage, ResolvedLayer};
 
 use super::{LayerStoreDiff, LayerStoreImage, LayerStoreLayer};
 
-#[derive(Debug, Default)]
+const NON_NIX_IMAGE_CACHE_CAPACITY: usize = 1024;
+
+#[derive(Debug)]
 pub struct LayerStoreResolver {
 	images: RwLock<BTreeMap<String, LayerStoreImage>>,
+	non_nix_images: Mutex<LruCache<String, ()>>,
+}
+
+impl Default for LayerStoreResolver {
+	fn default() -> Self {
+		let capacity = NonZeroUsize::new(NON_NIX_IMAGE_CACHE_CAPACITY)
+			.expect("non-nix image cache capacity must be non-zero");
+		Self {
+			images: RwLock::new(BTreeMap::new()),
+			non_nix_images: Mutex::new(LruCache::new(capacity)),
+		}
+	}
 }
 
 impl LayerStoreResolver {
@@ -40,11 +57,20 @@ impl LayerStoreResolver {
 			return Some(image);
 		}
 
+		if self.non_nix_images.lock().contains(encoded_ref) {
+			tracing::debug!(
+				encoded_ref,
+				"skipping cached non-nix image in dynamic ALS backend"
+			);
+			return None;
+		}
+
 		let image = self.resolve_image(encoded_ref).await?;
 		self.images
 			.write()
 			.expect("dynamic layer store write lock")
 			.insert(encoded_ref.to_owned(), image.clone());
+		self.non_nix_images.lock().pop(encoded_ref);
 		Some(image)
 	}
 
@@ -60,6 +86,7 @@ impl LayerStoreResolver {
 		match resolve_local_image(&image_ref).await {
 			Ok(Some(image)) => Some(LayerStoreImage::from_resolved_image(image).await),
 			Ok(None) => {
+				self.non_nix_images.lock().put(encoded_ref.to_owned(), ());
 				tracing::debug!(%image_ref, "skipping non-nix image in dynamic ALS backend");
 				None
 			}
@@ -69,12 +96,18 @@ impl LayerStoreResolver {
 			}
 		}
 	}
+
 	#[cfg(test)]
 	pub(super) fn insert_image_for_test(&self, image: LayerStoreImage) {
 		self.images
 			.write()
 			.expect("dynamic layer store write lock")
 			.insert(image.encoded_ref.clone(), image);
+	}
+
+	#[cfg(test)]
+	pub(super) fn insert_non_nix_encoded_ref_for_test(&self, encoded_ref: impl Into<String>) {
+		self.non_nix_images.lock().put(encoded_ref.into(), ());
 	}
 }
 
@@ -318,6 +351,20 @@ mod tests {
 					.await
 					.is_none()
 			);
+			assert!(resolver.images().await.is_empty());
+		});
+	}
+
+	#[test]
+	fn image_by_encoded_ref_returns_none_for_cached_non_nix_image_without_resolving() {
+		smol::block_on(async {
+			let resolver = LayerStoreResolver::new();
+			let image_ref = "ghcr.io/nicolaka/netshoot:v0.15";
+			let encoded_ref =
+				base64::engine::general_purpose::STANDARD.encode(image_ref.as_bytes());
+			resolver.insert_non_nix_encoded_ref_for_test(encoded_ref.clone());
+
+			assert!(resolver.image_by_encoded_ref(&encoded_ref).await.is_none());
 			assert!(resolver.images().await.is_empty());
 		});
 	}

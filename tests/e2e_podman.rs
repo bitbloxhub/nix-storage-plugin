@@ -61,6 +61,10 @@ struct E2eEnv {
 
 impl E2eEnv {
 	fn new() -> Self {
+		Self::new_with_additional_layer_store(true)
+	}
+
+	fn new_with_additional_layer_store(enable_additional_layer_store: bool) -> Self {
 		let tempdir = tempfile::tempdir().expect("tempdir should exist");
 		let home_dir = tempdir.path().join("home");
 		let runtime_dir = tempdir.path().join("runtime");
@@ -80,18 +84,19 @@ impl E2eEnv {
 		std::fs::create_dir_all(&run_root).expect("run root should exist");
 		std::fs::create_dir_all(&mount_path).expect("mount path should exist");
 		let registry_addr = free_local_addr();
-		std::fs::write(
-			&storage_conf,
-			format!(
-				"[storage]\n",
-			) + &format!(
-				"driver = \"overlay\"\ngraphroot = \"{}\"\nrunroot = \"{}\"\n\n[storage.options]\nadditionallayerstores = [\"{}:ref\"]\n",
-				graph_root.display(),
-				run_root.display(),
+		let mut storage_conf_contents = format!(
+			"[storage]\ndriver = \"overlay\"\ngraphroot = \"{}\"\nrunroot = \"{}\"\n",
+			graph_root.display(),
+			run_root.display(),
+		);
+		if enable_additional_layer_store {
+			storage_conf_contents.push_str(&format!(
+				"\n[storage.options]\nadditionallayerstores = [\"{}:ref\"]\n",
 				mount_path.display(),
-			),
-		)
-		.expect("storage.conf should be written");
+			));
+		}
+		std::fs::write(&storage_conf, storage_conf_contents)
+			.expect("storage.conf should be written");
 
 		std::fs::write(
 			containers_dir.join("registries.conf"),
@@ -128,6 +133,14 @@ impl E2eEnv {
 		}
 	}
 
+	fn inherit_debug_env(command: &mut Command) {
+		for key in ["RUST_LOG", "RUST_LOG_STYLE", "RUST_BACKTRACE"] {
+			if let Some(value) = std::env::var_os(key) {
+				command.env(key, value);
+			}
+		}
+	}
+
 	fn child_command(&self, program: impl Into<OsString>) -> Command {
 		let mut command = Command::new(program.into());
 		command.env_clear();
@@ -138,6 +151,7 @@ impl E2eEnv {
 			command.env("TERM", term);
 		}
 		Self::inherit_coverage_env(&mut command);
+		Self::inherit_debug_env(&mut command);
 		command.env("HOME", &self.home_dir);
 		command.env("XDG_CONFIG_HOME", self.home_dir.join(".config"));
 		command.env("XDG_DATA_HOME", self.home_dir.join(".local/share"));
@@ -333,6 +347,12 @@ fn pull_image_with_retry(env: &E2eEnv, image: &str) -> std::process::Output {
 	last_output.expect("pull attempts should produce output")
 }
 
+fn pull_image_duration_with_retry(env: &E2eEnv, image: &str) -> (Duration, std::process::Output) {
+	let started_at = Instant::now();
+	let output = pull_image_with_retry(env, image);
+	(started_at.elapsed(), output)
+}
+
 #[test]
 #[cfg_attr(no_test_network, ignore = "NO_TEST_NETWORK is set")]
 fn podman_runs_nix_image() {
@@ -356,6 +376,55 @@ fn podman_runs_nix_image() {
 		],
 	);
 	assert_podman_success(output);
+}
+
+#[test]
+#[cfg_attr(no_test_network, ignore = "NO_TEST_NETWORK is set")]
+fn podman_pulls_ordinary_image_within_five_minutes() {
+	let env = E2eEnv::new();
+	let _mount = start_mount_store(&env);
+	let image = std::env::var("NSP_E2E_ORDINARY_IMAGE")
+		.unwrap_or_else(|_| "ghcr.io/nicolaka/netshoot:v0.15".to_owned());
+	let (elapsed, pull_output) = pull_image_duration_with_retry(&env, &image);
+
+	assert_podman_success(pull_output);
+	assert!(
+		elapsed < Duration::from_secs(5 * 60),
+		"pulling {image} took {:?}, expected under 5 minutes",
+		elapsed
+	);
+}
+
+#[test]
+#[cfg_attr(no_test_network, ignore = "NO_TEST_NETWORK is set")]
+fn podman_pulls_ordinary_image_with_and_without_als_on_fresh_roots() {
+	let image = std::env::var("NSP_E2E_ORDINARY_IMAGE")
+		.unwrap_or_else(|_| "ghcr.io/nicolaka/netshoot:v0.15".to_owned());
+
+	let als_env = E2eEnv::new_with_additional_layer_store(true);
+	let _mount = start_mount_store(&als_env);
+	let (als_elapsed, als_output) = pull_image_duration_with_retry(&als_env, &image);
+	assert_podman_success(als_output);
+	assert!(
+		als_elapsed < Duration::from_secs(5 * 60),
+		"pulling {image} with ALS took {:?}, expected under 5 minutes",
+		als_elapsed
+	);
+
+	let no_als_env = E2eEnv::new_with_additional_layer_store(false);
+	let (no_als_elapsed, no_als_output) = pull_image_duration_with_retry(&no_als_env, &image);
+	assert_podman_success(no_als_output);
+	assert!(
+		no_als_elapsed < Duration::from_secs(5 * 60),
+		"pulling {image} without ALS took {:?}, expected under 5 minutes",
+		no_als_elapsed
+	);
+
+	let slowdown = als_elapsed.as_secs_f64() / no_als_elapsed.as_secs_f64();
+	println!(
+		"ordinary image pull timing on fresh roots: with ALS = {:?}, without ALS = {:?}, slowdown = {:.2}x",
+		als_elapsed, no_als_elapsed, slowdown,
+	);
 }
 
 #[test]

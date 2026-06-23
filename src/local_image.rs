@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 use base64::Engine as _;
 use bytes::Bytes;
 use flate2::read::GzDecoder;
-use oci_spec::image::{Descriptor, ImageConfiguration, ImageManifest};
+use oci_spec::image::{Arch, Descriptor, ImageConfiguration, ImageIndex, ImageManifest, Os};
 use serde::Deserialize;
 use serde_json::Value;
 use smol::fs;
@@ -74,6 +74,48 @@ fn remote_image_source(image_ref: &str) -> String {
 	format!("docker://{image_ref}")
 }
 
+fn docker_source_ref_with_digest(source: &str, digest: &str) -> Option<String> {
+	let reference = source.strip_prefix("docker://")?;
+	let name = reference
+		.split_once('@')
+		.map(|(name, _)| name)
+		.unwrap_or(reference);
+
+	let name = match name.rsplit_once('/') {
+		Some((prefix, last)) => match last.rsplit_once(':') {
+			Some((repo, _tag)) => format!("{prefix}/{repo}"),
+			None => name.to_owned(),
+		},
+		None => name
+			.rsplit_once(':')
+			.map(|(repo, _tag)| repo.to_owned())
+			.unwrap_or_else(|| name.to_owned()),
+	};
+
+	Some(format!("docker://{name}@{digest}"))
+}
+
+fn current_architecture() -> Arch {
+	Arch::default()
+}
+
+fn current_os() -> Os {
+	Os::default()
+}
+
+fn select_current_platform(index: &ImageIndex) -> Option<&Descriptor> {
+	let arch = current_architecture();
+	let os = current_os();
+
+	index.manifests().iter().find(|descriptor| {
+		let Some(platform) = descriptor.platform() else {
+			return false;
+		};
+
+		platform.architecture() == &arch && platform.os() == &os
+	})
+}
+
 async fn image_source_for_skopeo(image_ref: &str) -> Result<String, NixStoragePluginError> {
 	if let Some(archive_path) = archive_path_from_image_ref(image_ref) {
 		try_realize_nix_archive_path(&archive_path).await;
@@ -109,17 +151,53 @@ struct LocalStorageLayerRecord {
 pub(crate) async fn resolve_local_image(
 	image_ref: &str,
 ) -> Result<Option<ResolvedImage>, NixStoragePluginError> {
+	let started = std::time::Instant::now();
+	let manifest_started = std::time::Instant::now();
 	let manifest_raw = inspect_image_source_manifest_raw(image_ref).await?;
+	tracing::debug!(
+		%image_ref,
+		elapsed = ?manifest_started.elapsed(),
+		manifest_bytes = manifest_raw.len(),
+		"resolved image manifest raw"
+	);
 	let manifest: ImageManifest = serde_json::from_str(&manifest_raw)?;
 
 	if !manifest_maybe_nix_backed(&manifest) {
+		tracing::debug!(
+			%image_ref,
+			elapsed = ?started.elapsed(),
+			layer_count = manifest.layers().len(),
+			"resolved local image as ordinary image; skipping ALS resolution"
+		);
 		return Ok(None);
 	}
 
+	let config_started = std::time::Instant::now();
 	let config: ImageConfiguration =
 		serde_json::from_str(&inspect_image_source_config_raw(image_ref).await?)?;
+	tracing::debug!(
+		%image_ref,
+		elapsed = ?config_started.elapsed(),
+		"resolved image config raw"
+	);
+	let export_started = std::time::Instant::now();
 	let exported_blobs = export_image_source_blobs(image_ref, manifest.layers()).await?;
+	tracing::debug!(
+		%image_ref,
+		elapsed = ?export_started.elapsed(),
+		layer_count = manifest.layers().len(),
+		exported_blob_count = exported_blobs.len(),
+		"exported image blobs"
+	);
+	let layer_records_started = std::time::Instant::now();
 	let local_layer_records = read_local_layer_records().await?;
+	tracing::debug!(
+		%image_ref,
+		elapsed = ?layer_records_started.elapsed(),
+		local_layer_record_count = local_layer_records.len(),
+		"read local layer records"
+	);
+	let resolve_layers_started = std::time::Instant::now();
 	let mut resolved_layers = Vec::with_capacity(manifest.layers().len());
 
 	for (index, layer) in manifest.layers().iter().enumerate() {
@@ -133,6 +211,12 @@ pub(crate) async fn resolve_local_image(
 			.await?,
 		)
 	}
+	tracing::debug!(
+		%image_ref,
+		elapsed = ?resolve_layers_started.elapsed(),
+		resolved_layer_count = resolved_layers.len(),
+		"resolved image layers"
+	);
 
 	let image = ResolvedImage {
 		image_ref: image_ref.to_owned(),
@@ -144,9 +228,21 @@ pub(crate) async fn resolve_local_image(
 	};
 
 	if !image.is_nix_backed() {
+		tracing::debug!(
+			%image_ref,
+			elapsed = ?started.elapsed(),
+			resolved_layer_count = image.layers.len(),
+			"resolved image layers but image not nix-backed; skipping ALS resolution"
+		);
 		return Ok(None);
 	}
 
+	tracing::debug!(
+		%image_ref,
+		elapsed = ?started.elapsed(),
+		resolved_layer_count = image.layers.len(),
+		"resolved nix-backed local image"
+	);
 	Ok(Some(image))
 }
 
@@ -484,6 +580,34 @@ mod tests {
 	}
 
 	#[test]
+	fn docker_source_ref_with_digest_replaces_tag_and_preserves_registry_port() {
+		assert_eq!(
+			docker_source_ref_with_digest(
+				"docker://ghcr.io:443/nicolaka/netshoot:v0.15",
+				"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			),
+			Some(
+				"docker://ghcr.io:443/nicolaka/netshoot@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+					.to_owned(),
+			),
+		);
+	}
+
+	#[test]
+	fn docker_source_ref_with_digest_keeps_untagged_name() {
+		assert_eq!(
+			docker_source_ref_with_digest(
+				"docker://ghcr.io/nicolaka/netshoot",
+				"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+			),
+			Some(
+				"docker://ghcr.io/nicolaka/netshoot@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+					.to_owned(),
+			),
+		);
+	}
+
+	#[test]
 	fn export_image_source_blobs_returns_empty_when_no_layers() {
 		smol::block_on(async {
 			let blobs = export_image_source_blobs("example:latest", &[])
@@ -744,58 +868,137 @@ async fn ensure_image_manifest_raw(
 		return Ok(manifest_raw);
 	}
 
-	let export_dir = match storage_conf_path {
+	tracing::debug!(%source, "raw manifest was an index; selecting platform manifest by digest");
+	let index: ImageIndex = serde_json::from_str(&manifest_raw)?;
+	let descriptor = select_current_platform(&index).ok_or_else(|| {
+		NixStoragePluginError::InvalidLocalStorageState(format!(
+			"image source {source} is an index but has no manifest for {}/{}",
+			current_os(),
+			current_architecture()
+		))
+	})?;
+	let digest_source = docker_source_ref_with_digest(source, descriptor.digest().as_ref())
+		.ok_or_else(|| {
+			NixStoragePluginError::InvalidLocalStorageState(format!(
+				"cannot select platform manifest by digest for source {source}"
+			))
+		})?;
+
+	let selected_raw = match storage_conf_path {
 		Some(path) => {
-			export_source_to_temp_dir(
-				source,
-				"nix-storage-plugin-manifest-",
-				&[("CONTAINERS_STORAGE_CONF", path)],
-			)
-			.await?
+			inspect_manifest_raw(&digest_source, &[("CONTAINERS_STORAGE_CONF", path)]).await?
 		}
-		None => export_source_to_temp_dir(source, "nix-storage-plugin-manifest-", &[]).await?,
+		None => inspect_manifest_raw(&digest_source, &[]).await?,
 	};
-	fs::read_to_string(export_dir.path().join("manifest.json"))
-		.await
-		.map_err(Into::into)
+
+	if serde_json::from_str::<ImageManifest>(&selected_raw).is_ok() {
+		return Ok(selected_raw);
+	}
+
+	Err(NixStoragePluginError::InvalidLocalStorageState(format!(
+		"selected platform manifest {digest_source} did not resolve to an image manifest"
+	)))
 }
 
 async fn inspect_image_source_manifest_raw(
 	image_ref: &str,
 ) -> Result<String, NixStoragePluginError> {
+	let started = std::time::Instant::now();
 	let source = image_source_for_skopeo(image_ref).await?;
 	let storage_conf = helper_storage_conf().await?;
 	let storage_conf_path = storage_conf.path().display().to_string();
+	let inspect_started = std::time::Instant::now();
 	let (manifest_source, manifest_storage_conf_path, manifest_raw) = match inspect_manifest_raw(
 		&source,
 		&[("CONTAINERS_STORAGE_CONF", storage_conf_path.as_str())],
 	)
 	.await
 	{
-		Ok(manifest) => (source.clone(), Some(storage_conf_path.as_str()), manifest),
+		Ok(manifest) => {
+			tracing::debug!(
+				%image_ref,
+				%source,
+				elapsed = ?inspect_started.elapsed(),
+				manifest_bytes = manifest.len(),
+				"inspected manifest from local storage source"
+			);
+			(source.clone(), Some(storage_conf_path.as_str()), manifest)
+		}
 		Err(error) if is_local_storage_image_miss(&error) => {
+			tracing::debug!(
+				%image_ref,
+				%source,
+				elapsed = ?inspect_started.elapsed(),
+				"local storage manifest inspect missed; falling back to remote source"
+			);
 			let remote_source = remote_image_source(image_ref);
+			let remote_started = std::time::Instant::now();
 			let manifest = inspect_manifest_raw(&remote_source, &[]).await?;
+			tracing::debug!(
+				%image_ref,
+				source = %remote_source,
+				elapsed = ?remote_started.elapsed(),
+				manifest_bytes = manifest.len(),
+				"inspected manifest from remote source"
+			);
 			(remote_source, None, manifest)
 		}
 		Err(error) => return Err(error),
 	};
-	ensure_image_manifest_raw(&manifest_source, manifest_storage_conf_path, manifest_raw).await
+	let ensure_started = std::time::Instant::now();
+	let manifest_raw =
+		ensure_image_manifest_raw(&manifest_source, manifest_storage_conf_path, manifest_raw)
+			.await?;
+	tracing::debug!(
+		%image_ref,
+		source = %manifest_source,
+		elapsed = ?started.elapsed(),
+		ensure_elapsed = ?ensure_started.elapsed(),
+		manifest_bytes = manifest_raw.len(),
+		"resolved final image manifest raw"
+	);
+	Ok(manifest_raw)
 }
 
 async fn inspect_image_source_config_raw(image_ref: &str) -> Result<String, NixStoragePluginError> {
 	let source = image_source_for_skopeo(image_ref).await?;
 	let storage_conf = helper_storage_conf().await?;
 	let storage_conf_path = storage_conf.path().display().to_string();
+	let inspect_started = std::time::Instant::now();
 	match inspect_config_raw(
 		&source,
 		&[("CONTAINERS_STORAGE_CONF", storage_conf_path.as_str())],
 	)
 	.await
 	{
-		Ok(config) => Ok(config),
+		Ok(config) => {
+			tracing::debug!(
+				%image_ref,
+				%source,
+				elapsed = ?inspect_started.elapsed(),
+				config_bytes = config.len(),
+				"inspected config from local storage source"
+			);
+			Ok(config)
+		}
 		Err(error) if is_local_storage_image_miss(&error) => {
-			inspect_config_raw(&remote_image_source(image_ref), &[]).await
+			tracing::debug!(
+				%image_ref,
+				%source,
+				elapsed = ?inspect_started.elapsed(),
+				"local storage config inspect missed; falling back to remote source"
+			);
+			let remote_source = remote_image_source(image_ref);
+			let remote_started = std::time::Instant::now();
+			let config = inspect_config_raw(&remote_source, &[]).await?;
+			tracing::debug!(
+				%image_ref,
+				source = %remote_source,
+				elapsed = ?remote_started.elapsed(),
+				config_bytes = config.len(),
+				"inspected config from remote source"
+			);
+			Ok(config)
 		}
 		Err(error) => Err(error),
 	}
@@ -809,9 +1012,11 @@ async fn export_image_source_blobs(
 		return Ok(BTreeMap::new());
 	}
 
+	let started = std::time::Instant::now();
 	let source = image_source_for_skopeo(image_ref).await?;
 	let storage_conf = helper_storage_conf().await?;
 	let storage_conf_path = storage_conf.path().display().to_string();
+	let export_started = std::time::Instant::now();
 	let (source, export_dir) = match export_source_to_temp_dir(
 		&source,
 		"nix-storage-plugin-",
@@ -819,15 +1024,49 @@ async fn export_image_source_blobs(
 	)
 	.await
 	{
-		Ok(export_dir) => (source, export_dir),
+		Ok(export_dir) => {
+			tracing::debug!(
+				%image_ref,
+				%source,
+				elapsed = ?export_started.elapsed(),
+				layer_count = layers.len(),
+				"exported blobs from local storage source"
+			);
+			(source, export_dir)
+		}
 		Err(error) if is_local_storage_image_miss(&error) => {
+			tracing::debug!(
+				%image_ref,
+				%source,
+				elapsed = ?export_started.elapsed(),
+				"local storage blob export missed; falling back to remote source"
+			);
 			let source = remote_image_source(image_ref);
+			let remote_started = std::time::Instant::now();
 			let export_dir = export_source_to_temp_dir(&source, "nix-storage-plugin-", &[]).await?;
+			tracing::debug!(
+				%image_ref,
+				source = %source,
+				elapsed = ?remote_started.elapsed(),
+				layer_count = layers.len(),
+				"exported blobs from remote source"
+			);
 			(source, export_dir)
 		}
 		Err(error) => return Err(error),
 	};
-	read_exported_blobs_by_layer_order(export_dir.path(), layers, &source).await
+	let read_started = std::time::Instant::now();
+	let blobs = read_exported_blobs_by_layer_order(export_dir.path(), layers, &source).await?;
+	tracing::debug!(
+		%image_ref,
+		source = %source,
+		elapsed = ?started.elapsed(),
+		read_elapsed = ?read_started.elapsed(),
+		layer_count = layers.len(),
+		exported_blob_count = blobs.len(),
+		"materialized exported blobs by layer order"
+	);
+	Ok(blobs)
 }
 
 async fn read_exported_blobs_by_layer_order(
