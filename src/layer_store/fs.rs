@@ -17,7 +17,7 @@ use futures_util::stream;
 use lru::LruCache;
 use parking_lot::Mutex;
 
-use crate::common::{TTL, dir_attr, file_attr};
+use crate::common::{TTL, dir_attr, dir_attr_owned, file_attr, file_attr_owned};
 use crate::metadata::{LayerDiffEntry, LayerDiffEntryKind};
 
 use super::{LayerStoreDiff, LayerStoreImage, LayerStoreLayer, LayerStoreResolver};
@@ -137,11 +137,130 @@ impl TraceConfig {
 	}
 }
 
+const DEFAULT_OVERFLOW_ID: u32 = 65_534;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SubordinateIdRange {
+	start: u32,
+	length: u32,
+}
+
+#[derive(Debug, Clone)]
+enum IdMapper {
+	Identity,
+	Rootless {
+		root_id: u32,
+		overflow_id: u32,
+		subordinate: Vec<SubordinateIdRange>,
+	},
+}
+
+impl IdMapper {
+	fn rootless(root_id: u32, overflow_id: u32, contents: &str, keys: &[String]) -> Self {
+		let subordinate = contents
+			.lines()
+			.filter_map(|line| {
+				let mut fields = line.split(':');
+				let key = fields.next()?;
+				let start = fields.next()?.parse().ok()?;
+				let length = fields.next()?.parse().ok()?;
+				if fields.next().is_some() || !keys.iter().any(|candidate| candidate == key) {
+					return None;
+				}
+				Some(SubordinateIdRange { start, length })
+			})
+			.collect();
+		Self::Rootless {
+			root_id,
+			overflow_id,
+			subordinate,
+		}
+	}
+
+	fn map(&self, container_id: u32) -> u32 {
+		let Self::Rootless {
+			root_id,
+			overflow_id,
+			subordinate,
+		} = self
+		else {
+			return container_id;
+		};
+		if container_id == 0 {
+			return *root_id;
+		}
+
+		let mut offset = container_id - 1;
+		for range in subordinate {
+			if offset < range.length {
+				return range.start.checked_add(offset).unwrap_or(*overflow_id);
+			}
+			offset -= range.length;
+		}
+		*overflow_id
+	}
+}
+
+#[derive(Debug, Clone)]
+struct IdMappings {
+	uid: IdMapper,
+	gid: IdMapper,
+}
+
+impl IdMappings {
+	fn kernel_overflow_id(path: &str) -> u32 {
+		fs::read_to_string(path)
+			.ok()
+			.and_then(|value| value.trim().parse().ok())
+			.unwrap_or(DEFAULT_OVERFLOW_ID)
+	}
+
+	fn current() -> Self {
+		let uid = nix::unistd::geteuid();
+		if uid.is_root() {
+			return Self {
+				uid: IdMapper::Identity,
+				gid: IdMapper::Identity,
+			};
+		}
+		let username = nix::unistd::User::from_uid(uid)
+			.ok()
+			.flatten()
+			.map(|user| user.name);
+		let mut keys = vec![uid.as_raw().to_string()];
+		if let Some(username) = username {
+			keys.push(username);
+		}
+
+		Self {
+			uid: IdMapper::rootless(
+				uid.as_raw(),
+				Self::kernel_overflow_id("/proc/sys/kernel/overflowuid"),
+				&fs::read_to_string("/etc/subuid").unwrap_or_default(),
+				&keys,
+			),
+			gid: IdMapper::rootless(
+				nix::unistd::getegid().as_raw(),
+				Self::kernel_overflow_id("/proc/sys/kernel/overflowgid"),
+				&fs::read_to_string("/etc/subgid").unwrap_or_default(),
+				&keys,
+			),
+		}
+	}
+
+	fn map_attr(&self, mut attr: fuse3::path::reply::FileAttr) -> fuse3::path::reply::FileAttr {
+		attr.uid = self.uid.map(attr.uid);
+		attr.gid = self.gid.map(attr.gid);
+		attr
+	}
+}
+
 #[derive(Clone)]
 pub struct LayerStoreFS {
 	backend: Arc<LayerStoreResolver>,
 	read_cache: Arc<Mutex<FileReadCache>>,
 	trace: Arc<TraceConfig>,
+	id_mappings: Arc<IdMappings>,
 }
 
 impl LayerStoreFS {
@@ -150,7 +269,12 @@ impl LayerStoreFS {
 			backend,
 			read_cache: Arc::new(Mutex::new(FileReadCache::from_env())),
 			trace: Arc::new(TraceConfig::from_env()),
+			id_mappings: Arc::new(IdMappings::current()),
 		}
+	}
+
+	fn mapped_attr(&self, attr: fuse3::path::reply::FileAttr) -> fuse3::path::reply::FileAttr {
+		self.id_mappings.map_attr(attr)
 	}
 
 	fn root_attr() -> fuse3::path::reply::FileAttr {
@@ -158,6 +282,15 @@ impl LayerStoreFS {
 	}
 
 	fn symlink_attr(size: usize) -> fuse3::path::reply::FileAttr {
+		Self::symlink_attr_owned(size, 0o777, 0, 0)
+	}
+
+	fn symlink_attr_owned(
+		size: usize,
+		perm: u16,
+		uid: u32,
+		gid: u32,
+	) -> fuse3::path::reply::FileAttr {
 		let now = std::time::SystemTime::now();
 
 		fuse3::path::reply::FileAttr {
@@ -167,10 +300,10 @@ impl LayerStoreFS {
 			mtime: now,
 			ctime: now,
 			kind: FileType::Symlink,
-			perm: 0o777,
+			perm,
 			nlink: 1,
-			uid: 0,
-			gid: 0,
+			uid,
+			gid,
 			rdev: 0,
 			blksize: 4096,
 		}
@@ -292,14 +425,13 @@ impl LayerStoreFS {
 
 	fn attr_from_virtual_entry(entry: &LayerDiffEntry) -> fuse3::path::reply::FileAttr {
 		match &entry.kind {
-			LayerDiffEntryKind::Directory => {
-				dir_attr(if entry.perm == 0 { 0o555 } else { entry.perm })
+			LayerDiffEntryKind::Directory => dir_attr_owned(entry.perm, entry.uid, entry.gid),
+			LayerDiffEntryKind::Regular { contents } => {
+				file_attr_owned(contents.len(), entry.perm, entry.uid, entry.gid)
 			}
-			LayerDiffEntryKind::Regular { contents } => file_attr(
-				contents.len(),
-				if entry.perm == 0 { 0o444 } else { entry.perm },
-			),
-			LayerDiffEntryKind::Symlink { target } => Self::symlink_attr(target.as_os_str().len()),
+			LayerDiffEntryKind::Symlink { target } => {
+				Self::symlink_attr_owned(target.as_os_str().len(), entry.perm, entry.uid, entry.gid)
+			}
 		}
 	}
 
@@ -566,7 +698,7 @@ impl LayerStoreFS {
 				return Some(Self::attr_from_virtual_entry(entry));
 			}
 			if Self::starts_with(&components, relative) {
-				return Some(dir_attr(0o555));
+				return Some(dir_attr(0o755));
 			}
 		}
 
@@ -833,7 +965,10 @@ impl PathFilesystem for LayerStoreFS {
 
 		self.entry_attr(&path)
 			.await
-			.map(|attr| ReplyEntry { ttl: TTL, attr })
+			.map(|attr| ReplyEntry {
+				ttl: TTL,
+				attr: self.mapped_attr(attr),
+			})
 			.ok_or_else(|| libc::ENOENT.into())
 	}
 
@@ -848,6 +983,7 @@ impl PathFilesystem for LayerStoreFS {
 		let attr = self
 			.entry_attr(path)
 			.await
+			.map(|attr| self.mapped_attr(attr))
 			.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
 
 		Ok(ReplyAttr { ttl: TTL, attr })
@@ -979,6 +1115,7 @@ impl PathFilesystem for LayerStoreFS {
 			let attr = self
 				.entry_attr(&entry_path)
 				.await
+				.map(|attr| self.mapped_attr(attr))
 				.ok_or_else(|| fuse3::Errno::from(libc::ENOENT))?;
 
 			plus_entries.push(DirectoryEntryPlus {
@@ -1062,9 +1199,21 @@ mod tests {
 	}
 
 	fn regular_entry(path: &str, perm: u16, contents: &[u8]) -> LayerDiffEntry {
+		regular_entry_owned(path, perm, 0, 0, contents)
+	}
+
+	fn regular_entry_owned(
+		path: &str,
+		perm: u16,
+		uid: u32,
+		gid: u32,
+		contents: &[u8],
+	) -> LayerDiffEntry {
 		LayerDiffEntry {
 			path: PathBuf::from(path),
 			perm,
+			uid,
+			gid,
 			kind: LayerDiffEntryKind::Regular {
 				contents: Bytes::copy_from_slice(contents),
 			},
@@ -1075,6 +1224,8 @@ mod tests {
 		LayerDiffEntry {
 			path: PathBuf::from(path),
 			perm,
+			uid: 0,
+			gid: 0,
 			kind: LayerDiffEntryKind::Directory,
 		}
 	}
@@ -1083,6 +1234,8 @@ mod tests {
 		LayerDiffEntry {
 			path: PathBuf::from(path),
 			perm: 0o777,
+			uid: 0,
+			gid: 0,
 			kind: LayerDiffEntryKind::Symlink {
 				target: PathBuf::from(target),
 			},
@@ -1096,6 +1249,43 @@ mod tests {
 			blob: Bytes::copy_from_slice(blob),
 			diff: LayerStoreDiff::default(),
 		}
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn rootless_id_mapper_shifts_container_ids_into_subordinate_range(tc: hegel::TestCase) {
+		let container_id = u32::from(tc.draw(generators::integers::<u16>()));
+		let mapper = IdMapper::rootless(1001, 65_534, "user:165536:65536\n", &["user".into()]);
+		let expected = if container_id == 0 {
+			1001
+		} else {
+			165_536 + container_id - 1
+		};
+
+		assert_eq!(mapper.map(container_id), expected);
+	}
+
+	#[hegel::test(derandomize = true)]
+	fn identity_id_mapper_preserves_ids(tc: hegel::TestCase) {
+		let id = tc.draw(generators::integers::<u32>());
+
+		assert_eq!(IdMapper::Identity.map(id), id);
+	}
+
+	#[test]
+	fn rootless_id_mapper_uses_all_matching_ranges_and_overflow_id() {
+		let mapper = IdMapper::rootless(
+			1001,
+			60_000,
+			"other:100000:5\n1001:200000:2\nuser:300000:3\ninvalid\n",
+			&["1001".into(), "user".into()],
+		);
+
+		assert_eq!(mapper.map(0), 1001);
+		assert_eq!(mapper.map(1), 200_000);
+		assert_eq!(mapper.map(2), 200_001);
+		assert_eq!(mapper.map(3), 300_000);
+		assert_eq!(mapper.map(5), 300_002);
+		assert_eq!(mapper.map(6), 60_000);
 	}
 
 	#[hegel::test(derandomize = true)]
@@ -1213,9 +1403,11 @@ mod tests {
 		let target = tc.draw(generators::from_regex(r"[A-Za-z0-9._/-]{1,16}").fullmatch(true));
 		let contents = tc.draw(generators::binary());
 		let perm = tc.draw(generators::integers::<u16>());
+		let uid = tc.draw(generators::integers::<u32>());
+		let gid = tc.draw(generators::integers::<u32>());
 		let entries = vec![
 			directory_entry("bin", 0o755),
-			regular_entry(&format!("bin/{file_name}"), perm, &contents),
+			regular_entry_owned(&format!("bin/{file_name}"), perm, uid, gid, &contents),
 			symlink_entry(&link_name, &target),
 		];
 		assert_eq!(
@@ -1224,12 +1416,12 @@ mod tests {
 				.kind,
 			FileType::Directory
 		);
-		assert_eq!(
+		let file_attr =
 			LayerStoreFS::virtual_diff_entry_attr(&entries, &["bin".into(), file_name.clone()])
-				.expect("file attr")
-				.perm,
-			if perm == 0 { 0o444 } else { perm }
-		);
+				.expect("file attr");
+		assert_eq!(file_attr.perm, perm);
+		assert_eq!(file_attr.uid, uid);
+		assert_eq!(file_attr.gid, gid);
 		assert_eq!(
 			LayerStoreFS::virtual_diff_read_bytes(&entries, &["bin".into(), file_name.clone()]),
 			Some(Bytes::from(contents.clone()))
@@ -1409,7 +1601,7 @@ mod tests {
 					.await
 					.expect("virtual attr")
 					.perm,
-				if perm == 0 { 0o444 } else { perm }
+				perm
 			);
 		})
 	}

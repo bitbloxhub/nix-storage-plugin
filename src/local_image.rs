@@ -361,14 +361,16 @@ mod tests {
 
 		assert_eq!(projected_store_paths(&layer), expected);
 	}
-	fn tar_blob(entries: &[(&str, &[u8], u32)]) -> Bytes {
+	fn tar_blob(entries: &[(&str, &[u8], u32, u32, u32)]) -> Bytes {
 		let mut buffer = Vec::new();
 		{
 			let mut builder = tar::Builder::new(&mut buffer);
-			for (path, contents, mode) in entries {
+			for (path, contents, mode, uid, gid) in entries {
 				let mut header = tar::Header::new_gnu();
 				header.set_size(contents.len() as u64);
 				header.set_mode(*mode);
+				header.set_uid(u64::from(*uid));
+				header.set_gid(u64::from(*gid));
 				header.set_cksum();
 				builder
 					.append_data(&mut header, path, *contents)
@@ -426,48 +428,127 @@ mod tests {
 	}
 
 	#[hegel::test(derandomize = true)]
-	fn parse_layer_diff_entries_sorts_paths_and_preserves_contents(tc: hegel::TestCase) {
+	fn parse_layer_diff_entries_sorts_paths_and_preserves_metadata(tc: hegel::TestCase) {
 		let first: String = tc.draw(tar_path_component());
 		let second: String = tc.draw(tar_path_component().filter(|value| value != &first));
 		let first_contents = tc.draw(generators::binary().max_size(16));
 		let second_contents = tc.draw(generators::binary().max_size(16));
+		let first_uid = tc.draw(generators::integers::<u32>());
+		let first_gid = tc.draw(generators::integers::<u32>());
+		let second_uid = tc.draw(generators::integers::<u32>());
+		let second_gid = tc.draw(generators::integers::<u32>());
 		let blob = tar_blob(&[
-			(&second, second_contents.as_slice(), 0),
-			(&first, first_contents.as_slice(), 0o640),
+			(
+				&second,
+				second_contents.as_slice(),
+				0,
+				second_uid,
+				second_gid,
+			),
+			(
+				&first,
+				first_contents.as_slice(),
+				0o640,
+				first_uid,
+				first_gid,
+			),
 		]);
 		let entries = parse_layer_diff_entries(&blob).expect("tar blob should parse");
 
 		assert_eq!(entries.len(), 2);
-		let (first_path, first_perm, first_bytes, second_path, second_perm, second_bytes) =
-			if first <= second {
+		let expected = if first <= second {
+			vec![
 				(
 					&first,
 					0o640,
+					first_uid,
+					first_gid,
 					first_contents.as_slice(),
-					&second,
-					0o444,
-					second_contents.as_slice(),
-				)
-			} else {
+				),
 				(
 					&second,
 					0o444,
+					second_uid,
+					second_gid,
 					second_contents.as_slice(),
+				),
+			]
+		} else {
+			vec![
+				(
+					&second,
+					0o444,
+					second_uid,
+					second_gid,
+					second_contents.as_slice(),
+				),
+				(
 					&first,
 					0o640,
+					first_uid,
+					first_gid,
 					first_contents.as_slice(),
-				)
-			};
-		assert_eq!(entries[0].path, PathBuf::from(first_path));
-		assert_eq!(entries[0].perm, first_perm);
-		assert_eq!(entries[1].path, PathBuf::from(second_path));
-		assert_eq!(entries[1].perm, second_perm);
-		assert!(
-			matches!(&entries[0].kind, LayerDiffEntryKind::Regular { contents } if contents.as_ref() == first_bytes)
-		);
-		assert!(
-			matches!(&entries[1].kind, LayerDiffEntryKind::Regular { contents } if contents.as_ref() == second_bytes)
-		);
+				),
+			]
+		};
+		for (entry, (path, perm, uid, gid, contents)) in entries.iter().zip(expected) {
+			assert_eq!(entry.path, PathBuf::from(path));
+			assert_eq!(entry.perm, perm);
+			assert_eq!(entry.uid, uid);
+			assert_eq!(entry.gid, gid);
+			assert!(
+				matches!(&entry.kind, LayerDiffEntryKind::Regular { contents: actual } if actual.as_ref() == contents),
+			);
+		}
+	}
+
+	#[test]
+	fn parse_layer_diff_entries_preserves_owned_dirs_and_synthesizes_parents() {
+		let mut archive_bytes = Vec::new();
+		{
+			let mut builder = tar::Builder::new(&mut archive_bytes);
+
+			let mut file = tar::Header::new_gnu();
+			file.set_size(1);
+			file.set_mode(0o644);
+			file.set_uid(1000);
+			file.set_gid(1000);
+			file.set_cksum();
+			builder
+				.append_data(&mut file, "home/user/file", std::io::Cursor::new(b"x"))
+				.expect("file should append");
+
+			for (path, mode, uid, gid) in
+				[("home/user/", 0o755, 1000, 1000), ("tmp/", 0o1777, 0, 0)]
+			{
+				let mut directory = tar::Header::new_gnu();
+				directory.set_entry_type(tar::EntryType::Directory);
+				directory.set_size(0);
+				directory.set_mode(mode);
+				directory.set_uid(uid);
+				directory.set_gid(gid);
+				directory.set_cksum();
+				builder
+					.append_data(&mut directory, path, std::io::empty())
+					.expect("directory should append");
+			}
+			builder.finish().expect("tar should finish");
+		}
+
+		let entries =
+			parse_layer_diff_entries(&Bytes::from(archive_bytes)).expect("tar should parse");
+		let metadata = |path: &str| {
+			entries
+				.iter()
+				.find(|entry| entry.path == Path::new(path))
+				.map(|entry| (entry.perm, entry.uid, entry.gid))
+				.expect("entry should exist")
+		};
+
+		assert_eq!(metadata("home"), (0o755, 0, 0));
+		assert_eq!(metadata("home/user"), (0o755, 1000, 1000));
+		assert_eq!(metadata("home/user/file"), (0o644, 1000, 1000));
+		assert_eq!(metadata("tmp"), (0o1777, 0, 0));
 	}
 
 	#[hegel::test(derandomize = true)]
@@ -1187,49 +1268,87 @@ fn parse_layer_diff_entries(blob: &Bytes) -> Result<Vec<LayerDiffEntry>, NixStor
 
 	let tar_bytes = maybe_decompress_layer(blob)?;
 	let mut archive = tar::Archive::new(Cursor::new(tar_bytes));
-	let mut entries = Vec::new();
+	let mut entries = BTreeMap::new();
 
 	for entry in archive.entries()? {
 		let mut entry = entry?;
 		let Some(path) = normalize_tar_path(entry.path()?.as_ref()) else {
 			continue;
 		};
-		let mode = (entry.header().mode().unwrap_or(0o555) & 0o777) as u16;
-		match entry.header().entry_type() {
-			tar::EntryType::Directory => entries.push(LayerDiffEntry {
-				path,
-				perm: if mode == 0 { 0o555 } else { mode },
+		let entry_type = entry.header().entry_type();
+		let mode = entry
+			.header()
+			.mode()
+			.ok()
+			.map(|mode| (mode & 0o7777) as u16);
+		let uid = entry
+			.header()
+			.uid()
+			.ok()
+			.and_then(|uid| u32::try_from(uid).ok())
+			.unwrap_or(0);
+		let gid = entry
+			.header()
+			.gid()
+			.ok()
+			.and_then(|gid| u32::try_from(gid).ok())
+			.unwrap_or(0);
+
+		let parsed = match entry_type {
+			tar::EntryType::Directory => LayerDiffEntry {
+				path: path.clone(),
+				perm: mode.filter(|mode| *mode != 0).unwrap_or(0o755),
+				uid,
+				gid,
 				kind: LayerDiffEntryKind::Directory,
-			}),
+			},
 			tar::EntryType::Regular => {
 				let mut contents = Vec::new();
 				entry.read_to_end(&mut contents)?;
-				entries.push(LayerDiffEntry {
-					path,
-					perm: if mode == 0 { 0o444 } else { mode },
+				LayerDiffEntry {
+					path: path.clone(),
+					perm: mode.filter(|mode| *mode != 0).unwrap_or(0o444),
+					uid,
+					gid,
 					kind: LayerDiffEntryKind::Regular {
 						contents: Bytes::from(contents),
 					},
-				})
+				}
 			}
 			tar::EntryType::Symlink => {
 				let Some(target) = entry.link_name()? else {
 					continue;
 				};
-				entries.push(LayerDiffEntry {
-					path,
-					perm: 0o777,
+				LayerDiffEntry {
+					path: path.clone(),
+					perm: mode.filter(|mode| *mode != 0).unwrap_or(0o777),
+					uid,
+					gid,
 					kind: LayerDiffEntryKind::Symlink {
 						target: target.into_owned(),
 					},
-				})
+				}
 			}
 			_ => continue,
+		};
+
+		let mut parent = path.parent();
+		while let Some(parent_path) = parent.filter(|parent| !parent.as_os_str().is_empty()) {
+			entries
+				.entry(parent_path.to_path_buf())
+				.or_insert_with(|| LayerDiffEntry {
+					path: parent_path.to_path_buf(),
+					perm: 0o755,
+					uid: 0,
+					gid: 0,
+					kind: LayerDiffEntryKind::Directory,
+				});
+			parent = parent_path.parent();
 		}
+		entries.insert(path, parsed);
 	}
 
-	entries.sort_by(|left, right| left.path.cmp(&right.path));
-	Ok(entries)
+	Ok(entries.into_values().collect())
 }
 
 fn maybe_decompress_layer(blob: &Bytes) -> Result<Vec<u8>, NixStoragePluginError> {

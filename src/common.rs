@@ -48,6 +48,10 @@ pub enum NixStoragePluginError {
 }
 
 pub fn dir_attr(perm: u16) -> FileAttr {
+	dir_attr_owned(perm, 0, 0)
+}
+
+pub fn dir_attr_owned(perm: u16, uid: u32, gid: u32) -> FileAttr {
 	let now = std::time::SystemTime::now();
 
 	FileAttr {
@@ -59,14 +63,18 @@ pub fn dir_attr(perm: u16) -> FileAttr {
 		kind: FileType::Directory,
 		perm,
 		nlink: 2,
-		uid: 0,
-		gid: 0,
+		uid,
+		gid,
 		rdev: 0,
 		blksize: 4096,
 	}
 }
 
 pub fn file_attr(size: usize, perm: u16) -> FileAttr {
+	file_attr_owned(size, perm, 0, 0)
+}
+
+pub fn file_attr_owned(size: usize, perm: u16, uid: u32, gid: u32) -> FileAttr {
 	let now = std::time::SystemTime::now();
 
 	FileAttr {
@@ -78,8 +86,8 @@ pub fn file_attr(size: usize, perm: u16) -> FileAttr {
 		kind: FileType::RegularFile,
 		perm,
 		nlink: 1,
-		uid: 0,
-		gid: 0,
+		uid,
+		gid,
 		rdev: 0,
 		blksize: 4096,
 	}
@@ -248,34 +256,31 @@ mod tests {
 	}
 
 	#[hegel::test(derandomize = true)]
-	fn dir_attr_sets_directory_defaults(tc: hegel::TestCase) {
-		let perm = tc.draw(generators::integers::<u16>());
-		let attr = dir_attr(perm);
-
-		assert_eq!(attr.kind, FileType::Directory);
-		assert_eq!(attr.perm, perm);
-		assert_eq!(attr.size, 0);
-		assert_eq!(attr.blocks, 0);
-		assert_eq!(attr.nlink, 2);
-		assert_eq!(attr.uid, 0);
-		assert_eq!(attr.gid, 0);
-		assert_eq!(attr.blksize, 4096);
-	}
-
-	#[hegel::test(derandomize = true)]
-	fn file_attr_sets_regular_file_defaults(tc: hegel::TestCase) {
+	fn owned_attrs_preserve_permissions_and_ownership(tc: hegel::TestCase) {
 		let size = tc.draw(generators::integers::<u16>()) as usize;
 		let perm = tc.draw(generators::integers::<u16>());
-		let attr = file_attr(size, perm);
+		let uid = tc.draw(generators::integers::<u32>());
+		let gid = tc.draw(generators::integers::<u32>());
 
-		assert_eq!(attr.kind, FileType::RegularFile);
-		assert_eq!(attr.size, size as u64);
-		assert_eq!(attr.blocks, 1);
-		assert_eq!(attr.perm, perm);
-		assert_eq!(attr.nlink, 1);
-		assert_eq!(attr.uid, 0);
-		assert_eq!(attr.gid, 0);
-		assert_eq!(attr.blksize, 4096);
+		let dir = dir_attr_owned(perm, uid, gid);
+		assert_eq!(dir.kind, FileType::Directory);
+		assert_eq!(dir.perm, perm);
+		assert_eq!(dir.size, 0);
+		assert_eq!(dir.blocks, 0);
+		assert_eq!(dir.nlink, 2);
+		assert_eq!(dir.uid, uid);
+		assert_eq!(dir.gid, gid);
+		assert_eq!(dir.blksize, 4096);
+
+		let file = file_attr_owned(size, perm, uid, gid);
+		assert_eq!(file.kind, FileType::RegularFile);
+		assert_eq!(file.size, size as u64);
+		assert_eq!(file.blocks, 1);
+		assert_eq!(file.perm, perm);
+		assert_eq!(file.nlink, 1);
+		assert_eq!(file.uid, uid);
+		assert_eq!(file.gid, gid);
+		assert_eq!(file.blksize, 4096);
 	}
 
 	#[test]

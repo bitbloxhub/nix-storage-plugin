@@ -380,6 +380,44 @@ fn podman_runs_nix_image() {
 
 #[test]
 #[cfg_attr(no_test_network, ignore = "NO_TEST_NETWORK is set")]
+fn podman_writes_to_nix_image_copy_to_root() {
+	let prebuild_flake = std::env::var("NSP_E2E_NIX_IMAGE_REMOTE_PREBUILD_FLAKE")
+		.unwrap_or_else(|_| "github:pdtpartners/nix-snapshotter#image-redisWithShell".to_owned());
+	let _ = nix_out_path(prebuild_flake);
+	let env = E2eEnv::new();
+	let _mount = start_mount_store(&env);
+	let image = std::env::var("NSP_E2E_NIX_IMAGE_REMOTE")
+		.unwrap_or_else(|_| "ghcr.io/pdtpartners/redis-shell:latest".to_owned());
+	let pull_output = pull_image_with_retry(&env, &image);
+	assert_podman_success(pull_output);
+
+	let write_test_script = r#"
+		set -eux
+		id
+		ls -ldn / /bin
+		mkdir -p /home/user /tmp /var
+		touch /bin/nsp-write-test /home/user/nsp-write-test /tmp/nsp-write-test /var/nsp-write-test
+		ls -ldn /bin /home /home/user /tmp /var
+		ls -ln /bin/nsp-write-test /home/user/nsp-write-test /tmp/nsp-write-test /var/nsp-write-test
+		for path in /bin/nsp-write-test /home/user/nsp-write-test /tmp/nsp-write-test /var/nsp-write-test; do
+			test -f "$path"
+		done
+	"#;
+	let output = env.run_command(
+		podman_bin(),
+		&[
+			OsString::from("run"),
+			OsString::from("--rm"),
+			OsString::from(image),
+			OsString::from("-lc"),
+			OsString::from(write_test_script),
+		],
+	);
+	assert_podman_success(output);
+}
+
+#[test]
+#[cfg_attr(no_test_network, ignore = "NO_TEST_NETWORK is set")]
 fn podman_pulls_ordinary_image_within_five_minutes() {
 	let env = E2eEnv::new();
 	let _mount = start_mount_store(&env);

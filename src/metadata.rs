@@ -35,6 +35,8 @@ pub enum LayerDiffEntryKind {
 pub struct LayerDiffEntry {
 	pub path: PathBuf,
 	pub perm: u16,
+	pub uid: u32,
+	pub gid: u32,
 	pub kind: LayerDiffEntryKind,
 }
 
