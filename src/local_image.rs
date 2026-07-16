@@ -107,13 +107,19 @@ fn select_current_platform(index: &ImageIndex) -> Option<&Descriptor> {
 	let arch = current_architecture();
 	let os = current_os();
 
-	index.manifests().iter().find(|descriptor| {
-		let Some(platform) = descriptor.platform() else {
-			return false;
-		};
-
-		platform.architecture() == &arch && platform.os() == &os
-	})
+	index
+		.manifests()
+		.iter()
+		.find(|descriptor| {
+			descriptor
+				.platform()
+				.as_ref()
+				.is_some_and(|platform| platform.architecture() == &arch && platform.os() == &os)
+		})
+		.or_else(|| match index.manifests().as_slice() {
+			[descriptor] if descriptor.platform().is_none() => Some(descriptor),
+			_ => None,
+		})
 }
 
 async fn image_source_for_skopeo(image_ref: &str) -> Result<String, NixStoragePluginError> {
@@ -539,6 +545,78 @@ mod tests {
 			"layers": layers,
 		}))
 		.expect("manifest should parse")
+	}
+
+	fn index_with_manifests(manifests: serde_json::Value) -> ImageIndex {
+		serde_json::from_value(serde_json::json!({
+			"schemaVersion": 2,
+			"mediaType": "application/vnd.oci.image.index.v1+json",
+			"manifests": manifests,
+		}))
+		.expect("index should parse")
+	}
+
+	#[test]
+	fn select_current_platform_accepts_single_platformless_manifest() {
+		let index = index_with_manifests(serde_json::json!([{
+			"mediaType": "application/vnd.oci.image.manifest.v1+json",
+			"digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			"size": 1,
+		}]));
+
+		assert_eq!(
+			select_current_platform(&index)
+				.expect("singleton platformless manifest should be selected")
+				.digest()
+				.to_string(),
+			"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		);
+	}
+
+	#[test]
+	fn select_current_platform_prefers_exact_match_over_platformless_manifest() {
+		let index = index_with_manifests(serde_json::json!([
+			{
+				"mediaType": "application/vnd.oci.image.manifest.v1+json",
+				"digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				"size": 1,
+			},
+			{
+				"mediaType": "application/vnd.oci.image.manifest.v1+json",
+				"digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				"size": 1,
+				"platform": {
+					"architecture": current_architecture().to_string(),
+					"os": current_os().to_string(),
+				},
+			},
+		]));
+
+		assert_eq!(
+			select_current_platform(&index)
+				.expect("exact platform manifest should be selected")
+				.digest()
+				.to_string(),
+			"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		);
+	}
+
+	#[test]
+	fn select_current_platform_rejects_ambiguous_platformless_manifests() {
+		let index = index_with_manifests(serde_json::json!([
+			{
+				"mediaType": "application/vnd.oci.image.manifest.v1+json",
+				"digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				"size": 1,
+			},
+			{
+				"mediaType": "application/vnd.oci.image.manifest.v1+json",
+				"digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				"size": 1,
+			},
+		]));
+
+		assert!(select_current_platform(&index).is_none());
 	}
 
 	#[test]
