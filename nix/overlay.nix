@@ -8,17 +8,15 @@ let
       system = prev.stdenv.hostPlatform.system;
     in
     {
-      podman = self.packages.${system}.podman;
-      cri-o-unwrapped = self.packages.${system}.cri-o-unwrapped;
-      cri-o = self.packages.${system}.cri-o;
-      buildah-unwrapped = self.packages.${system}.buildah-unwrapped;
       buildah = self.packages.${system}.buildah;
+      buildah-unwrapped = self.packages.${system}.buildah-unwrapped;
+      cri-o = self.packages.${system}.cri-o;
+      cri-o-unwrapped = self.packages.${system}.cri-o-unwrapped;
+      podman = self.packages.${system}.podman;
       skopeo = self.packages.${system}.skopeo;
     };
 in
 {
-  flake.overlays.default = defaultOverlay;
-
   perSystem =
     {
       pkgs,
@@ -26,21 +24,12 @@ in
     }:
     let
       imagePatch = pkgs.fetchpatch {
-        url = alsFirstPatchUrl;
+        excludes = [ "*_test.go" ];
+        extraPrefix = "vendor/go.podman.io/image/v5/";
         hash = "sha256-L7Pysl4YbD/ThroJbrk+OqyRl7je1wENJzOkdTK2aLs=";
         relative = "image";
-        extraPrefix = "vendor/go.podman.io/image/v5/";
-        excludes = [ "*_test.go" ];
-      };
-
-      storagePatch = pkgs.fetchpatch {
         url = alsFirstPatchUrl;
-        hash = "sha256-bpbyLEv4sgEABOBnkLcEnX3DcCLp2BU82jh8LW+M9Fg=";
-        relative = "storage";
-        extraPrefix = "vendor/go.podman.io/storage/";
-        excludes = [ "*_test.go" ];
       };
-
       patchContainerLibs =
         pkg:
         pkg.overrideAttrs (old: {
@@ -54,24 +43,27 @@ in
             patch --batch -p1 < ${storagePatch}
           '';
         });
-
       patchedPkgs = pkgs.extend (
         final: prev: {
-          podman = patchContainerLibs prev.podman;
-
-          cri-o-unwrapped = patchContainerLibs prev.cri-o-unwrapped;
-          cri-o = prev.cri-o.override {
-            inherit (final) cri-o-unwrapped;
-          };
-
-          buildah-unwrapped = patchContainerLibs prev.buildah-unwrapped;
           buildah = prev.buildah.override {
             inherit (final) buildah-unwrapped;
           };
-
+          buildah-unwrapped = patchContainerLibs prev.buildah-unwrapped;
+          cri-o = prev.cri-o.override {
+            inherit (final) cri-o-unwrapped;
+          };
+          cri-o-unwrapped = patchContainerLibs prev.cri-o-unwrapped;
+          podman = patchContainerLibs prev.podman;
           skopeo = patchContainerLibs prev.skopeo;
         }
       );
+      storagePatch = pkgs.fetchpatch {
+        excludes = [ "*_test.go" ];
+        extraPrefix = "vendor/go.podman.io/storage/";
+        hash = "sha256-bpbyLEv4sgEABOBnkLcEnX3DcCLp2BU82jh8LW+M9Fg=";
+        relative = "storage";
+        url = alsFirstPatchUrl;
+      };
     in
     {
       packages = {
@@ -83,4 +75,6 @@ in
         inherit (patchedPkgs) skopeo;
       };
     };
+
+  flake.overlays.default = defaultOverlay;
 }

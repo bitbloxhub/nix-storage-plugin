@@ -1562,7 +1562,8 @@ mod tests {
 				LayerStoreFS::host_diff_dir_entries(&diff.host_projection_roots, &nested_relative)
 					.await
 					.expect("host dir entries")
-					.len() >= 2
+					.len()
+					>= 2
 			);
 			assert_eq!(
 				fs.diff_read_bytes(&diff, &file_relative).await,

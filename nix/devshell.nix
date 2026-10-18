@@ -3,11 +3,9 @@
   ...
 }:
 {
-  flake-file.inputs = {
-    make-shell = {
-      url = "github:nicknovitski/make-shell";
-      inputs.flake-compat.follows = "";
-    };
+  flake-file.inputs.make-shell = {
+    url = "github:nicknovitski/make-shell";
+    inputs.flake-compat.follows = "";
   };
 
   imports = [

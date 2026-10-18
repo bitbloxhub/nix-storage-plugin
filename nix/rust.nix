@@ -2,25 +2,59 @@
 # fenix docs: nightly `default` may omit `llvm-tools-preview`, but `complete` exposes it as a separate component
 {
   flake-file.inputs = {
+    crate2nix = {
+      url = "github:nix-community/crate2nix";
+      inputs = {
+        cachix.follows = "";
+        flake-compat.follows = "";
+        flake-parts.follows = "flake-parts";
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    crate2nix = {
-      url = "github:nix-community/crate2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "";
-      inputs.flake-parts.follows = "flake-parts";
-      inputs.cachix.follows = "";
-    };
-
     hegel = {
       url = "github:hegeldev/hegel-core?ref=v0.9.1&dir=nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "";
+      inputs = {
+        flake-compat.follows = "";
+        nixpkgs.follows = "nixpkgs";
+      };
     };
   };
+
+  flatFlake.config.allowed = [
+    # Inputs used internally by the tools declared above.
+    [
+      "crate2nix"
+      "devshell"
+    ]
+    [
+      "crate2nix"
+      "nix-test-runner"
+    ]
+    [
+      "crate2nix"
+      "pre-commit-hooks"
+    ]
+    [
+      "fenix"
+      "rust-analyzer-src"
+    ]
+    [
+      "hegel"
+      "pyproject-build-systems"
+    ]
+    [
+      "hegel"
+      "pyproject-nix"
+    ]
+    [
+      "hegel"
+      "uv2nix"
+    ]
+  ];
 
   perSystem =
     {
@@ -31,27 +65,27 @@
     }:
     let
       cargoNix = import ../Cargo.nix;
-
-      rustToolchain = inputs'.fenix.packages.default.toolchain;
-
-      llvmTools = inputs'.fenix.packages.complete.llvm-tools-preview;
-
-      llvmToolsBin = "${llvmTools}/lib/rustlib/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/bin";
-
       cargoWorkspace = pkgs.callPackage cargoNix {
         buildRustCrateForPkgs =
           pkgs:
           with pkgs;
           buildRustCrate.override {
-            rustc = rustToolchain;
             cargo = rustToolchain;
+            rustc = rustToolchain;
           };
       };
-
+      llvmTools = inputs'.fenix.packages.complete.llvm-tools-preview;
+      llvmToolsBin = "${llvmTools}/lib/rustlib/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/bin";
       patchedSkopeo = self'.packages.skopeo;
+      rustToolchain = inputs'.fenix.packages.default.toolchain;
     in
     {
       make-shells.default = {
+        env = {
+          HEGEL_SERVER_COMMAND = pkgs.lib.getExe inputs'.hegel.packages.default;
+          LLVM_COV = "${llvmToolsBin}/llvm-cov";
+          LLVM_PROFDATA = "${llvmToolsBin}/llvm-profdata";
+        };
         packages = [
           inputs'.fenix.packages.default.toolchain
           pkgs.rust-analyzer
@@ -61,9 +95,6 @@
           llvmTools
           pkgs.lcov
         ];
-        env.HEGEL_SERVER_COMMAND = pkgs.lib.getExe inputs'.hegel.packages.default;
-        env.LLVM_COV = "${llvmToolsBin}/llvm-cov";
-        env.LLVM_PROFDATA = "${llvmToolsBin}/llvm-profdata";
       };
 
       packages.default = cargoWorkspace.rootCrate.build.overrideAttrs (old: {
