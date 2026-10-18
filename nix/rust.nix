@@ -24,38 +24,6 @@
     };
   };
 
-  flatFlake.config.allowed = [
-    # Inputs used internally by the tools declared above.
-    [
-      "crate2nix"
-      "devshell"
-    ]
-    [
-      "crate2nix"
-      "nix-test-runner"
-    ]
-    [
-      "crate2nix"
-      "pre-commit-hooks"
-    ]
-    [
-      "fenix"
-      "rust-analyzer-src"
-    ]
-    [
-      "hegel"
-      "pyproject-build-systems"
-    ]
-    [
-      "hegel"
-      "pyproject-nix"
-    ]
-    [
-      "hegel"
-      "uv2nix"
-    ]
-  ];
-
   perSystem =
     {
       pkgs,
@@ -119,4 +87,36 @@
         ];
       };
     };
+
+  flatFlake.config.allowed = [
+    # Inputs used internally by the tools declared above.
+    [
+      "crate2nix"
+      "devshell"
+    ]
+    [
+      "crate2nix"
+      "nix-test-runner"
+    ]
+    [
+      "crate2nix"
+      "pre-commit-hooks"
+    ]
+    [
+      "fenix"
+      "rust-analyzer-src"
+    ]
+    [
+      "hegel"
+      "pyproject-build-systems"
+    ]
+    [
+      "hegel"
+      "pyproject-nix"
+    ]
+    [
+      "hegel"
+      "uv2nix"
+    ]
+  ];
 }

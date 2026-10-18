@@ -98,6 +98,7 @@ rec {
         version = "2.0.1";
         edition = "2021";
         sha256 = "1ymy18s9hs7ya1pjc9864l30wk8p2qfqdi7mhhcc5nfakxbij09j";
+        license = "0BSD OR MIT OR Apache-2.0";
         authors = [
           "Jonas Schievink <jonasschievink@gmail.com>"
           "oyvindln <oyvindln@users.noreply.github.com>"
@@ -114,6 +115,7 @@ rec {
         edition = "2021";
         sha256 = "00a32wb2h07im3skkikc495jvncf62jl6s96vwc7bhi70h9imlyx";
         libName = "aho_corasick";
+        license = "Unlicense OR MIT";
         authors = [
           "Andrew Gallant <jamslam@gmail.com>"
         ];
@@ -139,6 +141,7 @@ rec {
         edition = "2018";
         sha256 = "08zrzs022xwndihvzdn78yqarv2b9696y67i6h78nla3ww87jgb8";
         libName = "allocator_api2";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Zakarum <zaq.dev@icloud.com>"
         ];
@@ -154,6 +157,7 @@ rec {
         version = "0.1.5";
         edition = "2018";
         sha256 = "04b3wrz12837j7mdczqd95b732gw5q7q66cv4yn4646lvccp57l1";
+        license = "MIT/Apache-2.0";
         authors = [
           "Nicolas Silva <nical@fastmail.com>"
         ];
@@ -170,6 +174,7 @@ rec {
         version = "1.0.0";
         edition = "2021";
         sha256 = "13d2bj0xfg012s4rmq44zc8zgy1q8k9yp7yhvfnarscnmwpj2jl2";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "anstyle";
@@ -215,6 +220,7 @@ rec {
         version = "1.0.14";
         edition = "2021";
         sha256 = "0030szmgj51fxkic1hpakxxgappxzwm6m154a3gfml83lq63l2wl";
+        license = "MIT OR Apache-2.0";
         features = {
           "default" = [ "std" ];
         };
@@ -226,6 +232,7 @@ rec {
         edition = "2021";
         sha256 = "03hkv2690s0crssbnmfkr76kw1k7ah2i6s5amdy9yca2n8w7zkjj";
         libName = "anstyle_parse";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "utf8parse";
@@ -246,6 +253,7 @@ rec {
         edition = "2021";
         sha256 = "1p6shfpnbghs6jsa0vnqd8bb8gd7pjd0jr7w0j8jikakzmr8zi20";
         libName = "anstyle_query";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "windows-sys";
@@ -262,6 +270,7 @@ rec {
         edition = "2021";
         sha256 = "0zblannm70sk3xny337mz7c6d8q8i24vhbqi42ld8v7q1wjnl7i9";
         libName = "anstyle_wincon";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "anstyle";
@@ -286,6 +295,7 @@ rec {
         version = "1.0.102";
         edition = "2021";
         sha256 = "0b447dra1v12z474c6z4jmicdmc5yxz5bakympdnij44ckw2s83z";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -300,6 +310,7 @@ rec {
         edition = "2021";
         sha256 = "1ljq24ig8lgs2555myrrjighycpx2mbjgrm3q7lpa6rdsmnxjklj";
         libName = "async_channel";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -337,6 +348,7 @@ rec {
         edition = "2021";
         sha256 = "0al1rmxjy7p7r6h50z698q5lwssqs5a2vzmqbazm1z2sv1rgjsy9";
         libName = "async_executor";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "John Nunley <dev@notgull.net>"
@@ -395,6 +407,7 @@ rec {
         edition = "2021";
         sha256 = "1iclw9970mh4ndb0bd68a6901kqy81rf9yypvf78pvaavy0scd40";
         libName = "async_fs";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -420,6 +433,7 @@ rec {
         edition = "2021";
         sha256 = "1fm7vqfzxc90d6cvpayds2d1dsd2g984zm2z0s9k3f8lc7i3gy8k";
         libName = "async_global_executor";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Marc-Antoine Perennou <Marc-Antoine@Perennou.com>"
         ];
@@ -464,6 +478,7 @@ rec {
         edition = "2021";
         sha256 = "1z16s18bm4jxlmp6rif38mvn55442yd3wjvdfhvx4hkgxf7qlss5";
         libName = "async_io";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -528,6 +543,7 @@ rec {
         edition = "2021";
         sha256 = "04c3xrrdrfrvh9v0ajxrangpy38qi76qq268zslphnxxjqjpy3r9";
         libName = "async_lock";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -560,6 +576,7 @@ rec {
         edition = "2021";
         sha256 = "1xyc5a5vcp3a7h1q2lbfh79wz8136dig4q4x6g4w2ws8ml7h0j5r";
         libName = "async_net";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -585,6 +602,7 @@ rec {
         edition = "2024";
         sha256 = "1551clq2asacp6z52wqi8pm12c0d4gq885mwx811m55q6c73n9v3";
         libName = "async_notify";
+        license = "MIT";
         authors = [
           "Sherlock Holo <sherlockya@gmail.com>"
         ];
@@ -610,6 +628,7 @@ rec {
         edition = "2021";
         sha256 = "0xfswxmng6835hjlfhv7k0jrfp7czqxpfj6y2s5dsp05q0g94l7w";
         libName = "async_process";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -673,6 +692,7 @@ rec {
         edition = "2021";
         sha256 = "11dlpb15la279r5cazppy18gbk2xzzl60ahzl19m1kr0l2psmdaj";
         libName = "async_signal";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "John Nunley <dev@notgull.net>"
         ];
@@ -744,6 +764,7 @@ rec {
         edition = "2021";
         sha256 = "1pp3avr4ri2nbh7s6y9ws0397nkx1zymmcr14sq761ljarh3axcb";
         libName = "async_task";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -760,6 +781,7 @@ rec {
         sha256 = "1fsxxmz3rzx1prn1h3rs7kyjhkap60i7xvi0ldapkvbb14nssdch";
         procMacro = true;
         libName = "async_trait";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -787,6 +809,7 @@ rec {
         edition = "2018";
         sha256 = "1h5av1lw56m0jf0fd3bchxq8a30xv0b4wv8s4zkp4s0i7mfvs18m";
         libName = "atomic_waker";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "Contributors to futures-rs"
@@ -800,6 +823,7 @@ rec {
         version = "1.5.1";
         edition = "2015";
         sha256 = "0lqasy5i30flcgih1b50kvsk6z32g09r1q4ql7q81pj6228jy0zj";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Josh Stone <cuviper@gmail.com>"
         ];
@@ -810,6 +834,7 @@ rec {
         version = "1.0.0";
         edition = "2024";
         sha256 = "1xi6jy6y08hbxfy14pxjlxcggl9kfsvsn3jbyyk7lii4ss878c7x";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "RustCrypto Developers"
         ];
@@ -822,6 +847,7 @@ rec {
         version = "0.22.1";
         edition = "2018";
         sha256 = "1imqzgh7bxcikp5vx3shqvw9j09g9ly0xr0jma0q66i52r7jbcvj";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Marshall Pierce <marshall@mpierce.org>"
         ];
@@ -836,6 +862,7 @@ rec {
         version = "2.11.1";
         edition = "2021";
         sha256 = "1cvqijg3rvwgis20a66vfdxannjsxfy5fgjqkaq3l13gyfcj4lf4";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rust Project Developers"
         ];
@@ -853,6 +880,7 @@ rec {
         edition = "2024";
         sha256 = "1glh8w49a7cj0wlkalyn9j605jzf2ss0lg8dqq5xh8cr2q451lyd";
         libName = "block_buffer";
+        license = "MIT OR Apache-2.0";
         authors = [
           "RustCrypto Developers"
         ];
@@ -871,6 +899,7 @@ rec {
         version = "1.6.2";
         edition = "2021";
         sha256 = "08bz3f9agqlp3102snkvsll6wc9ag7x5m1xy45ak2rv9pq18sgz8";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -914,6 +943,7 @@ rec {
         version = "3.20.3";
         edition = "2021";
         sha256 = "0jc6va3nwcqikm7chnpdv1s87my3gs2j7g1sc7g3k91brg3arxbj";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Nick Fitzgerald <fitzgen@gmail.com>"
         ];
@@ -929,6 +959,7 @@ rec {
         version = "1.11.1";
         edition = "2021";
         sha256 = "0czwlhbq8z29wq0ia87yass2mzy1y0jcasjb8ghriiybnwrqfx0y";
+        license = "MIT";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
@@ -945,6 +976,7 @@ rec {
         version = "1.2.62";
         edition = "2018";
         sha256 = "164zsxcy2zzvbbh1qpbrsssz8kmria41j4agih47sal3y1cyip51";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -968,6 +1000,7 @@ rec {
         edition = "2018";
         sha256 = "008q28ajc546z5p2hcwdnckmg0hia7rnx52fni04bwqkzyrghc4k";
         libName = "cfg_if";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -981,6 +1014,7 @@ rec {
         version = "0.2.1";
         edition = "2018";
         sha256 = "092pxdc1dbgjb6qvh83gk56rkic2n2ybm4yvy76cgynmzi3zwfk1";
+        license = "MIT";
         authors = [
           "Zicklag <zicklag@katharostech.com>"
         ];
@@ -991,6 +1025,7 @@ rec {
         version = "0.4.44";
         edition = "2021";
         sha256 = "1c64mk9a235271j5g3v4zrzqqmd43vp9vki7vqfllpqf5rd0fwy6";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "iana-time-zone";
@@ -1040,6 +1075,7 @@ rec {
         version = "0.2.2";
         edition = "2021";
         sha256 = "03hgfw4674im1pdqblcp77m7rc8x2v828si5570ga5q9dzyrzrj2";
+        license = "Apache-2.0";
         authors = [
           "Nathaniel McCallum <npmccallum@profian.com>"
         ];
@@ -1072,6 +1108,7 @@ rec {
         edition = "2021";
         sha256 = "0my7s5g24hvp1rs1zd1cxapz94inrvqpdf1rslrvxj8618gfmbq5";
         libName = "ciborium_io";
+        license = "Apache-2.0";
         authors = [
           "Nathaniel McCallum <npmccallum@profian.com>"
         ];
@@ -1086,6 +1123,7 @@ rec {
         edition = "2021";
         sha256 = "1n8g4j5rwkfs3rzfi6g1p7ngmz6m5yxsksryzf5k72ll7mjknrjp";
         libName = "ciborium_ll";
+        license = "Apache-2.0";
         authors = [
           "Nathaniel McCallum <npmccallum@profian.com>"
         ];
@@ -1110,6 +1148,7 @@ rec {
         edition = "2024";
         crateBin = [];
         sha256 = "0lcf88l7vlg796rrqr7wipbbmfa5sgsgx4211b7xmxxv8dz13nqx";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "clap_builder";
@@ -1151,6 +1190,7 @@ rec {
         version = "4.6.0";
         edition = "2024";
         sha256 = "17q6np22yxhh5y5v53y4l31ps3hlaz45mvz2n2nicr7n3c056jki";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "anstream";
@@ -1191,6 +1231,7 @@ rec {
         edition = "2024";
         sha256 = "1acpz49hi00iv9jkapixjzcv7s51x8qkfaqscjm36rqgf428dkpj";
         procMacro = true;
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "heck";
@@ -1222,6 +1263,7 @@ rec {
         version = "1.1.0";
         edition = "2024";
         sha256 = "1ycqkpygnlqnndghhcxjb44lzl0nmgsia64x9581030yifxs7m68";
+        license = "MIT OR Apache-2.0";
 
       };
       "colorchoice" = rec {
@@ -1229,6 +1271,7 @@ rec {
         version = "1.0.5";
         edition = "2021";
         sha256 = "0w75k89hw39p0mnnhlrwr23q50rza1yjki44qvh2mgrnj065a1qx";
+        license = "MIT OR Apache-2.0";
 
       };
       "concurrent-queue" = rec {
@@ -1237,6 +1280,7 @@ rec {
         edition = "2021";
         sha256 = "0wrr3mzq2ijdkxwndhf79k952cp4zkz35ray8hvsxl96xrx1k82c";
         libName = "concurrent_queue";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "Taiki Endo <te316e89@gmail.com>"
@@ -1262,6 +1306,7 @@ rec {
         edition = "2024";
         sha256 = "0p7m286mp8aai4sa72g7ji6qm0d4ns8wg4i4b2hj9p9615zm3vx6";
         libName = "const_oid";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "RustCrypto Developers"
         ];
@@ -1274,6 +1319,7 @@ rec {
         version = "0.2.36";
         edition = "2021";
         sha256 = "07ncczs8yndga2f8p4386c827l4fxwzl0pbwp7ijnhcsmlbsd0a4";
+        license = "Zlib";
         authors = [
           "rodrimati1992 <rodrimatt1985@gmail.com>"
         ];
@@ -1314,6 +1360,7 @@ rec {
         edition = "2021";
         sha256 = "0i3pxxcl4xvwq4mlfg3csb4j0n6v0mhj07p6yk0vlvdirznc4mqx";
         procMacro = true;
+        license = "Zlib";
         authors = [
           "rodrimati1992 <rodrimatt1985@gmail.com>"
         ];
@@ -1345,6 +1392,7 @@ rec {
         edition = "2018";
         sha256 = "12w8j73lazxmr1z0h98hf3z623kl8ms7g07jch7n4p8f9nwlhdkp";
         libName = "core_foundation_sys";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Servo Project Developers"
         ];
@@ -1358,6 +1406,7 @@ rec {
         version = "0.3.0";
         edition = "2024";
         sha256 = "00fjhygsqmh4kbxxlb99mcsbspxcai6hjydv4c46pwb67wwl2alb";
+        license = "MIT OR Apache-2.0";
         authors = [
           "RustCrypto Developers"
         ];
@@ -1394,6 +1443,7 @@ rec {
         version = "1.5.0";
         edition = "2021";
         sha256 = "04d51liy8rbssra92p0qnwjw8i9rm9c4m3bwy19wjamz1k4w30cl";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Sam Rijs <srijs@airpost.net>"
           "Alex Crichton <alex@alexcrichton.com>"
@@ -1415,6 +1465,7 @@ rec {
         edition = "2021";
         sha256 = "0a3aa2bmc8q35fb67432w16wvi54sfmb69rk9h5bhd18vw0c99fh";
         libName = "crossbeam_utils";
+        license = "MIT OR Apache-2.0";
         features = {
           "default" = [ "std" ];
           "loom" = [ "dep:loom" ];
@@ -1425,6 +1476,7 @@ rec {
         version = "0.2.4";
         edition = "2021";
         sha256 = "1mbp5navim2qr3x48lyvadqblcxc1dm0lqr0swrkkwy2qblvw3s6";
+        license = "MIT";
         authors = [
           "Eira Fransham <jackefransham@gmail.com>"
         ];
@@ -1439,6 +1491,7 @@ rec {
         edition = "2024";
         sha256 = "0lql5wjlrjkd3r0w32rwbgqfmgg84ms3h65ldnlckmkc3nb4qvnf";
         libName = "crypto_common";
+        license = "MIT OR Apache-2.0";
         authors = [
           "RustCrypto Developers"
         ];
@@ -1459,6 +1512,7 @@ rec {
         version = "0.20.11";
         edition = "2021";
         sha256 = "1vmlphlrlw4f50z16p4bc9p5qwdni1ba95qmxfrrmzs6dh8lczzw";
+        license = "MIT";
         authors = [
           "Ted Driggs <ted.driggs@outlook.com>"
         ];
@@ -1484,6 +1538,7 @@ rec {
         version = "0.20.11";
         edition = "2021";
         sha256 = "0bj1af6xl4ablnqbgn827m43b8fiicgv180749f5cphqdmcvj00d";
+        license = "MIT";
         authors = [
           "Ted Driggs <ted.driggs@outlook.com>"
         ];
@@ -1527,6 +1582,7 @@ rec {
         edition = "2021";
         sha256 = "1bbfbc2px6sj1pqqq97bgqn6c8xdnb2fmz66f7f40nrqrcybjd7w";
         procMacro = true;
+        license = "MIT";
         authors = [
           "Ted Driggs <ted.driggs@outlook.com>"
         ];
@@ -1551,6 +1607,7 @@ rec {
         version = "0.20.2";
         edition = "2018";
         sha256 = "0is9z7v3kznziqsxa5jqji3ja6ay9wzravppzhcaczwbx84znzah";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Colin Kiegel <kiegel@gmx.de>"
           "Pascal Hertleif <killercup@gmail.com>"
@@ -1576,6 +1633,7 @@ rec {
         version = "0.20.2";
         edition = "2018";
         sha256 = "1s640r6q46c2iiz25sgvxw3lk6b6v5y8hwylng7kas2d09xwynrd";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Colin Kiegel <kiegel@gmx.de>"
           "Pascal Hertleif <killercup@gmail.com>"
@@ -1611,6 +1669,7 @@ rec {
         edition = "2018";
         sha256 = "0g1zznpqrmvjlp2w7p0jzsjvpmw5rvdag0rfyypjhnadpzib0qxb";
         procMacro = true;
+        license = "MIT OR Apache-2.0";
         authors = [
           "Colin Kiegel <kiegel@gmx.de>"
           "Pascal Hertleif <killercup@gmail.com>"
@@ -1640,6 +1699,7 @@ rec {
         version = "0.11.3";
         edition = "2024";
         sha256 = "1hnmhd4rkybr11292w42pz9ppzx1h49glrhqg107k4s1b2xnvpgi";
+        license = "MIT OR Apache-2.0";
         authors = [
           "RustCrypto Developers"
         ];
@@ -1678,6 +1738,7 @@ rec {
         version = "1.0.2";
         edition = "2015";
         sha256 = "03swzqznragy8n0x31lqc78g2af054jwivp7lkrbrc0khz74lyl7";
+        license = "Apache-2.0 OR MIT";
 
       };
       "errno" = rec {
@@ -1685,6 +1746,7 @@ rec {
         version = "0.3.14";
         edition = "2018";
         sha256 = "1szgccmh8vgryqyadg8xd58mnwwicf39zmin3bsn63df2wbbgjir";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Chris Wong <lambda.fairy@gmail.com>"
           "Dan Gohman <dev@sunfishcode.online>"
@@ -1727,6 +1789,7 @@ rec {
         edition = "2021";
         sha256 = "1asnp3agbr8shcl001yd935m167ammyi8hnvl0q1ycajryn6cfz1";
         libName = "event_listener";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "John Nunley <dev@notgull.net>"
@@ -1766,6 +1829,7 @@ rec {
         edition = "2021";
         sha256 = "14rv18av8s7n8yixg38bxp5vg2qs394rl1w052by5npzmbgz7scb";
         libName = "event_listener_strategy";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "John Nunley <dev@notgull.net>"
         ];
@@ -1793,6 +1857,7 @@ rec {
         version = "2.4.1";
         edition = "2018";
         sha256 = "1mnqxxnxvd69ma9mczabpbbsgwlhd6l78yv3vd681453a9s247wz";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -1809,6 +1874,7 @@ rec {
         version = "0.2.29";
         edition = "2018";
         sha256 = "0napyyfccb26r7fyh9hg7ixrh4vph9h7y7k4iv1j19phqwrpla2w";
+        license = "MIT/Apache-2.0";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -1831,6 +1897,7 @@ rec {
         edition = "2018";
         sha256 = "10nmi0qdskq6l7zwxw5g56xny7hb624iki1c39d907qmfh3vrbjv";
         libName = "find_msvc_tools";
+        license = "MIT OR Apache-2.0";
 
       };
       "flate2" = rec {
@@ -1838,6 +1905,7 @@ rec {
         version = "1.1.9";
         edition = "2018";
         sha256 = "0g2pb7cxnzcbzrj8bw4v6gpqqp21aycmf6d84rzb6j748qkvlgw4";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
           "Josh Triplett <josh@joshtriplett.org>"
@@ -1889,6 +1957,7 @@ rec {
         edition = "2015";
         sha256 = "1hc2mcqha06aibcaza94vbi81j6pr9a1bbxrxjfhc91zin8yr7iz";
         libPath = "lib.rs";
+        license = "Apache-2.0 / MIT";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -1902,6 +1971,7 @@ rec {
         version = "0.1.5";
         edition = "2021";
         sha256 = "1wisr1xlc2bj7hk4rgkcjkz3j2x4dhd1h9lwk7mj8p71qpdgbi6r";
+        license = "Zlib";
         authors = [
           "Orson Peters <orsonpeters@gmail.com>"
         ];
@@ -1914,6 +1984,7 @@ rec {
         version = "0.9.0";
         edition = "2024";
         sha256 = "0s0msk3zla9vw8v4chr99wnw982h5c5n946x6107j8wjknnpj1sw";
+        license = "MIT";
         authors = [
           "Sherlock Holo <sherlockya@gmail.com>"
         ];
@@ -2002,6 +2073,7 @@ rec {
         edition = "2018";
         sha256 = "07fcyzrmbmh7fh4ainilf1s7gnwvnk07phdq77jkb9fpa2ffifq7";
         libName = "futures_channel";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "futures-core";
@@ -2024,6 +2096,7 @@ rec {
         edition = "2018";
         sha256 = "07bbvwjbm5g2i330nyr1kcvjapkmdqzl4r6mqv75ivvjaa0m0d3y";
         libName = "futures_core";
+        license = "MIT OR Apache-2.0";
         features = {
           "default" = [ "std" ];
           "portable-atomic" = [ "dep:portable-atomic" ];
@@ -2037,6 +2110,7 @@ rec {
         edition = "2018";
         sha256 = "063pf5m6vfmyxj74447x8kx9q8zj6m9daamj4hvf49yrg9fs7jyf";
         libName = "futures_io";
+        license = "MIT OR Apache-2.0";
         features = {
           "default" = [ "std" ];
         };
@@ -2048,6 +2122,7 @@ rec {
         edition = "2021";
         sha256 = "1ba4dg26sc168vf60b1a23dv1d8rcf3v3ykz2psb7q70kxh113pp";
         libName = "futures_lite";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "Contributors to futures-rs"
@@ -2097,6 +2172,7 @@ rec {
         sha256 = "0ys4b1lk7s0bsj29pv42bxsaavalch35rprp64s964p40c1bfdg8";
         procMacro = true;
         libName = "futures_macro";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "proc-macro2";
@@ -2120,6 +2196,7 @@ rec {
         edition = "2018";
         sha256 = "14q8ml7hn5a6gyy9ri236j28kh0svqmrk4gcg0wh26rkazhm95y3";
         libName = "futures_sink";
+        license = "MIT OR Apache-2.0";
         features = {
           "default" = [ "std" ];
           "std" = [ "alloc" ];
@@ -2131,6 +2208,7 @@ rec {
         edition = "2018";
         sha256 = "14s3vqf8llz3kjza33vn4ixg6kwxp61xrysn716h0cwwsnri2xq3";
         libName = "futures_task";
+        license = "MIT OR Apache-2.0";
         features = {
           "default" = [ "std" ];
           "std" = [ "alloc" ];
@@ -2143,6 +2221,7 @@ rec {
         edition = "2018";
         sha256 = "1mn60lw5kh32hz9isinjlpw34zx708fk5q1x0m40n6g6jq9a971q";
         libName = "futures_util";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "futures-core";
@@ -2220,6 +2299,7 @@ rec {
         version = "0.4.2";
         edition = "2024";
         sha256 = "0mb5833hf9pvn9dhvxjgfg5dx0m77g8wavvjdpvpnkp9fil1xr8d";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rand Project Developers"
         ];
@@ -2305,6 +2385,7 @@ rec {
         edition = "2018";
         sha256 = "04pr6qj9xf5krk1sqkwpn84zhk4z46y7fj8mjxrx8qbmwh8zrw4w";
         procMacro = true;
+        license = "MIT";
         authors = [
           "Ana Hobden <ana@hoverbear.org>"
           "John Baublitz <john.m.baublitz@gmail.com"
@@ -2335,6 +2416,7 @@ rec {
         version = "2.7.1";
         edition = "2021";
         sha256 = "0jyq42xfa6sghc397mx84av7fayd4xfxr4jahsqv90lmjr5xi8kf";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Kathryn Long <squeeself@gmail.com>"
         ];
@@ -2377,6 +2459,7 @@ rec {
         version = "0.15.5";
         edition = "2021";
         sha256 = "189qaczmjxnikm9db748xyhiw04kpmhm9xj9k9hg0sgx7pjwyacj";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -2420,6 +2503,7 @@ rec {
         version = "0.17.1";
         edition = "2024";
         sha256 = "0jmqz7i4yl6cm7rbn0i2ffkfrmwi6xkmzkaldr2v8bcsx2v0jngd";
+        license = "MIT OR Apache-2.0";
         features = {
           "alloc" = [ "dep:alloc" ];
           "allocator-api2" = [ "dep:allocator-api2" ];
@@ -2438,6 +2522,7 @@ rec {
         version = "0.5.0";
         edition = "2021";
         sha256 = "1sjmpsdl8czyh9ywl3qcsfsq9a307dg4ni2vnlwgnzzqhc4y0113";
+        license = "MIT OR Apache-2.0";
 
       };
       "hegeltest" = rec {
@@ -2446,6 +2531,7 @@ rec {
         edition = "2024";
         sha256 = "0fvgpjndsaxr5zn4k46a5va8lpqg9bs48z4dbcc6j426mf5nbjc6";
         libName = "hegel";
+        license = "MIT";
         dependencies = [
           {
             name = "ciborium";
@@ -2495,6 +2581,7 @@ rec {
         sha256 = "16n9lzczcha6lw1n0x5c1bq47i2qycqk9nfbfrah0dn4fghnbakz";
         procMacro = true;
         libName = "hegel_macros";
+        license = "MIT";
         dependencies = [
           {
             name = "proc-macro2";
@@ -2518,6 +2605,7 @@ rec {
         edition = "2021";
         sha256 = "1744vaqkczpwncfy960j2hxrbjl1q01csm84jpd9dajbdr2yy3zw";
         libName = "hermit_abi";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Stefan Lankes"
         ];
@@ -2533,6 +2621,7 @@ rec {
         version = "0.4.3";
         edition = "2018";
         sha256 = "0w1a4davm1lgzpamwnba907aysmlrnygbqmfis2mqjx5m552a93z";
+        license = "MIT OR Apache-2.0";
         authors = [
           "KokaKiwi <kokakiwi@kokakiwi.net>"
         ];
@@ -2548,6 +2637,7 @@ rec {
         version = "1.4.0";
         edition = "2021";
         sha256 = "06iind4cwsj1d6q8c2xgq8i2wka4ps74kmws24gsi1bzdlw2mfp3";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
           "Carl Lerche <me@carllerche.com>"
@@ -2574,6 +2664,7 @@ rec {
         edition = "2018";
         sha256 = "111ir5k2b9ihz5nr9cz7cwm7fnydca7dx4hc7vr16scfzghxrzhy";
         libName = "http_body";
+        license = "MIT";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Lucio Franco <luciofranco14@gmail.com>"
@@ -2597,6 +2688,7 @@ rec {
         edition = "2018";
         sha256 = "0jm6jv4gxsnlsi1kzdyffjrj8cfr3zninnxpw73mvkxy4qzdj8dh";
         libName = "http_body_util";
+        license = "MIT";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Lucio Franco <luciofranco14@gmail.com>"
@@ -2636,6 +2728,7 @@ rec {
         version = "1.10.1";
         edition = "2018";
         sha256 = "11ycd554bw2dkgw0q61xsa7a4jn1wb1xbfacmf3dbwsikvkkvgvd";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Sean McArthur <sean@seanmonstar.com>"
         ];
@@ -2649,6 +2742,7 @@ rec {
         version = "1.0.3";
         edition = "2021";
         sha256 = "1aa9rd2sac0zhjqh24c9xvir96g188zldkx0hr6dnnlx5904cfyz";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Pyfisch <pyfisch@posteo.org>"
         ];
@@ -2660,6 +2754,7 @@ rec {
         edition = "2024";
         sha256 = "1njpm3mmsb6lgr9nn97ld5aavwjzrvijjb4nav0anhnimf1aamci";
         libName = "hybrid_array";
+        license = "MIT OR Apache-2.0";
         authors = [
           "RustCrypto Developers"
         ];
@@ -2685,6 +2780,7 @@ rec {
         version = "1.9.0";
         edition = "2021";
         sha256 = "1jmwbwqcaficskg76kq402gbymbnh2z4v99xwq3l5aa6n8bg16b2";
+        license = "MIT";
         authors = [
           "Sean McArthur <sean@seanmonstar.com>"
         ];
@@ -2781,6 +2877,7 @@ rec {
         edition = "2021";
         sha256 = "0w64khw5p8s4nzwcf36bwnsmqzf61vpwk9ca1920x82bk6nwj6z3";
         libName = "iana_time_zone";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Andrew Straw <strawman@astraw.com>"
           "René Kijewski <rene.kijewski@fu-berlin.de>"
@@ -2833,6 +2930,7 @@ rec {
         edition = "2018";
         sha256 = "17r6jmj31chn7xs9698r122mapq85mfnv98bb4pg6spm0si2f67k";
         libName = "iana_time_zone_haiku";
+        license = "MIT OR Apache-2.0";
         authors = [
           "René Kijewski <crates.io@k6i.de>"
         ];
@@ -2850,6 +2948,7 @@ rec {
         edition = "2021";
         sha256 = "0m6rs0jcaj4mg33gkv98d71w3hridghp5c4yr928hplpkgbnfc1x";
         libName = "id_arena";
+        license = "MIT/Apache-2.0";
         authors = [
           "Nick Fitzgerald <fitzgen@gmail.com>"
           "Aleksey Kladov <aleksey.kladov@gmail.com>"
@@ -2865,6 +2964,7 @@ rec {
         version = "1.0.1";
         edition = "2015";
         sha256 = "0fac21q6pwns8gh1hz3nbq15j8fi441ncl6w4vlnd1cmc55kiq5r";
+        license = "MIT/Apache-2.0";
         authors = [
           "Ted Driggs <ted.driggs@outlook.com>"
         ];
@@ -2875,6 +2975,7 @@ rec {
         version = "2.14.0";
         edition = "2024";
         sha256 = "1na9z6f0d5pkjr1lgsni470v98gv2r7c41j8w48skr089x2yjrnl";
+        license = "Apache-2.0 OR MIT";
         dependencies = [
           {
             name = "equivalent";
@@ -2924,6 +3025,7 @@ rec {
         version = "1.70.2";
         edition = "2021";
         sha256 = "15anlc47sbz0jfs9q8fhwf0h3vs2w4imc030shdnq54sny5i7jx6";
+        license = "MIT OR Apache-2.0";
         features = {
         };
         resolvedDefaultFeatures = [ "default" ];
@@ -2933,6 +3035,7 @@ rec {
         version = "1.0.18";
         edition = "2021";
         sha256 = "10jnd1vpfkb8kj38rlkn2a6k02afvj3qmw054dfpzagrpl6achlg";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -2946,6 +3049,7 @@ rec {
         edition = "2021";
         sha256 = "04azrzsz91gr5s3z0ij36lz0kj9ry4lw3jz0mmbiwb251rsc8aql";
         libName = "js_sys";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -2984,6 +3088,7 @@ rec {
         version = "0.2.20";
         edition = "2018";
         sha256 = "1yyf1fhk28wbf1lqrga9as4cpfmpbry9a5vvdqyxgz14g3nk708j";
+        license = "Zlib";
         authors = [
           "rodrimati1992 <rodrimatt1985@gmail.com>"
         ];
@@ -3019,6 +3124,7 @@ rec {
         version = "0.2.19";
         edition = "2018";
         sha256 = "0dswja0dqcww4x3fwjnirc0azv2n6cazn8yv0kddksd8awzkz4x4";
+        license = "Zlib";
         authors = [
           "rodrimati1992 <rodrimatt1985@gmail.com>"
         ];
@@ -3031,6 +3137,7 @@ rec {
         version = "1.5.0";
         edition = "2015";
         sha256 = "1zk6dqqni0193xg6iijh7i3i44sryglwgvx20spdvwk3r6sbrlmv";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Marvin Löbel <loebel.marvin@gmail.com>"
         ];
@@ -3044,6 +3151,7 @@ rec {
         version = "0.1.0";
         edition = "2021";
         sha256 = "1chxm1484a0bly6anh6bd7a99sn355ymlagnwj3yajafnpldkv89";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Bryant Luk <code@bryantluk.com>"
         ];
@@ -3056,6 +3164,7 @@ rec {
         version = "0.2.186";
         edition = "2021";
         sha256 = "0rnyhzjyqq9x56skkllbjzzzwym3r61lq3l4hqj64v71gw0r3av8";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rust Project Developers"
         ];
@@ -3073,6 +3182,7 @@ rec {
         edition = "2021";
         sha256 = "0lwasljrqxjjfk9l2j8lyib1babh2qjlnhylqzl01nihw14nk9ij";
         libName = "linux_raw_sys";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Dan Gohman <dev@sunfishcode.online>"
         ];
@@ -3088,6 +3198,7 @@ rec {
         version = "0.4.14";
         edition = "2021";
         sha256 = "0rg9mhx7vdpajfxvdjmgmlyrn20ligzqvn8ifmaz7dc79gkrjhr2";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -3110,6 +3221,7 @@ rec {
         version = "0.4.29";
         edition = "2021";
         sha256 = "15q8j9c8g5zpkcw0hnd6cf2z7fxqnvsjh3rw5mv5q10r83i34l2y";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rust Project Developers"
         ];
@@ -3134,6 +3246,7 @@ rec {
         version = "0.12.5";
         edition = "2015";
         sha256 = "0f1a7cgqxbyhrmgaqqa11m3azwhcc36w0v5r4izgbhadl3sg8k13";
+        license = "MIT";
         authors = [
           "Jerome Froelich <jeromefroelic@hotmail.com>"
         ];
@@ -3156,6 +3269,7 @@ rec {
         version = "2.8.0";
         edition = "2021";
         sha256 = "0y9zzxcqxvdqg6wyag7vc3h0blhdn7hkq164bxyx2vph8zs5ijpq";
+        license = "Unlicense OR MIT";
         authors = [
           "Andrew Gallant <jamslam@gmail.com>"
           "bluss"
@@ -3175,6 +3289,7 @@ rec {
         version = "0.9.1";
         edition = "2015";
         sha256 = "12i17wh9a9plx869g7j4whf62xw68k5zd4k0k5nh6ys5mszid028";
+        license = "MIT";
         authors = [
           "Gilad Naaman <gilad.naaman@gmail.com>"
         ];
@@ -3193,6 +3308,7 @@ rec {
         version = "0.8.9";
         edition = "2021";
         sha256 = "05k3pdg8bjjzayq3rf0qhpirq9k37pxnasfn4arbs17phqn6m9qz";
+        license = "MIT OR Zlib OR Apache-2.0";
         authors = [
           "Frommi <daniil.liferenko@gmail.com>"
           "oyvindln <oyvindln@users.noreply.github.com>"
@@ -3227,6 +3343,7 @@ rec {
         version = "0.31.3";
         edition = "2021";
         sha256 = "0gbwnjfny9rq9hl5bz4ry520n9rnfknna4bg88n66f7zx3yx486g";
+        license = "MIT";
         dependencies = [
           {
             name = "bitflags";
@@ -3431,6 +3548,7 @@ rec {
         edition = "2021";
         sha256 = "1ra088d885lbd21q1bxgpqdlk1zlndblmarn948jz2a40xsbjmvr";
         libName = "nu_ansi_term";
+        license = "MIT";
         authors = [
           "ogham@bsago.me"
           "Ryan Scheel (Havvy) <ryan.havvy@gmail.com>"
@@ -3459,6 +3577,7 @@ rec {
         edition = "2021";
         sha256 = "0h984rhdkkqd4ny9cif7y2azl3xdfb7768hb9irhpsch4q3gq787";
         libName = "num_traits";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rust Project Developers"
         ];
@@ -3479,6 +3598,7 @@ rec {
         edition = "2021";
         sha256 = "0fm03d77m2rv7bbyjkzd40zsp8sl9caxdz8mi9ifqz2h64k5li78";
         libName = "oci_spec";
+        license = "Apache-2.0";
         authors = [
           "Furisto"
           "Sascha Grunert <sgrunert@redhat.com>"
@@ -3542,6 +3662,7 @@ rec {
         version = "1.21.4";
         edition = "2021";
         sha256 = "0l1v676wf71kjg2khch4dphwh1jp3291ffiymr2mvy1kxd5kwz4z";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Aleksey Kladov <aleksey.kladov@gmail.com>"
         ];
@@ -3561,6 +3682,7 @@ rec {
         version = "1.70.2";
         edition = "2021";
         sha256 = "1zmla628f0sk3fhjdjqzgxhalr2xrfna958s632z65bjsfv8ljrq";
+        license = "MIT OR Apache-2.0";
         features = {
         };
         resolvedDefaultFeatures = [ "default" ];
@@ -3570,6 +3692,7 @@ rec {
         version = "2.2.1";
         edition = "2018";
         sha256 = "1fnfgmzkfpjd69v4j9x737b1k8pnn054bvzcn5dm3pkgq595d3gk";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "The Rust Project Developers"
@@ -3583,6 +3706,7 @@ rec {
         version = "0.12.5";
         edition = "2021";
         sha256 = "06jsqh9aqmc94j2rlm8gpccilqm6bskbd67zf6ypfc0f4m9p91ck";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -3610,6 +3734,7 @@ rec {
         version = "0.9.12";
         edition = "2021";
         sha256 = "1hb4rggy70fwa1w9nb0svbyflzdc69h047482v2z3sx2hmcnh896";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -3650,6 +3775,7 @@ rec {
         edition = "2018";
         sha256 = "02pxffpdqkapy292harq6asfjvadgp1s005fip9ljfsn9fvxgh2p";
         procMacro = true;
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -3661,6 +3787,7 @@ rec {
         edition = "2018";
         sha256 = "1kfmwvs271si96zay4mm8887v5khw0c27jc9srw1a75ykvgj54x8";
         libName = "pin_project_lite";
+        license = "Apache-2.0 OR MIT";
 
       };
       "piper" = rec {
@@ -3668,6 +3795,7 @@ rec {
         version = "0.2.5";
         edition = "2018";
         sha256 = "1hd3j94mw5dwc457gs9ssb2r5b9iipywndf5srqx7pj38jd4fdf8";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "John Nunley <dev@notgull.net>"
@@ -3703,6 +3831,7 @@ rec {
         version = "3.11.0";
         edition = "2021";
         sha256 = "0622qfbxi3gb0ly2c99n3xawp878fkrd1sl83hjdhisx11cly3jx";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "John Nunley <dev@notgull.net>"
@@ -3751,6 +3880,7 @@ rec {
         edition = "2021";
         links = "prettyplease02";
         sha256 = "0azn11i1kh0byabhsgab6kqs74zyrg69xkirzgqyhz6xmjnsi727";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -3791,6 +3921,7 @@ rec {
         sha256 = "1ifzi763l7swl258d8ar4wbpxj4c9c2im7zy89avm6xv6vgl5pln";
         procMacro = true;
         libName = "proc_macro_error_attr2";
+        license = "MIT OR Apache-2.0";
         authors = [
           "CreepySkeleton <creepy-skeleton@yandex.ru>"
           "GnomedDev <david2005thomas@gmail.com>"
@@ -3813,6 +3944,7 @@ rec {
         edition = "2021";
         sha256 = "00lq21vgh7mvyx51nwxwf822w2fpww1x0z8z0q47p8705g2hbv0i";
         libName = "proc_macro_error2";
+        license = "MIT OR Apache-2.0";
         authors = [
           "CreepySkeleton <creepy-skeleton@yandex.ru>"
           "GnomedDev <david2005thomas@gmail.com>"
@@ -3856,6 +3988,7 @@ rec {
         edition = "2021";
         sha256 = "0d09nczyaj67x4ihqr5p7gxbkz38gxhk4asc0k8q23g9n85hzl4g";
         libName = "proc_macro2";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
           "Alex Crichton <alex@alexcrichton.com>"
@@ -3876,6 +4009,7 @@ rec {
         version = "0.18.0";
         edition = "2018";
         sha256 = "1xw25dx4cfc2z745w0dz4vhv24z7dprcxyk0km1n2s2dlmh56j15";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Andrew Chin <achin@eminence32.net>"
         ];
@@ -3924,6 +4058,7 @@ rec {
         edition = "2018";
         sha256 = "01g4lil280nacsd196xpfmvz5bp949dd2r9nas5zf8mgnvvinh76";
         libName = "procfs_core";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Andrew Chin <achin@eminence32.net>"
         ];
@@ -3958,6 +4093,7 @@ rec {
         version = "1.0.45";
         edition = "2021";
         sha256 = "095rb5rg7pbnwdp6v8w5jw93wndwyijgci1b5lw8j1h5cscn3wj1";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -3980,6 +4116,7 @@ rec {
         edition = "2018";
         sha256 = "1gyrl2k5fyzj9k7kchg2n296z5881lg7070msabid09asp3wkp7q";
         libName = "r_efi";
+        license = "MIT OR Apache-2.0 OR LGPL-2.1-or-later";
         features = {
           "core" = [ "dep:core" ];
           "rustc-dep-of-std" = [ "core" ];
@@ -3991,6 +4128,7 @@ rec {
         edition = "2021";
         sha256 = "0b9n38zsxylql36vybw18if68yc9jczxmbyzdwyhb9sifmag4azd";
         libName = "syscall";
+        license = "MIT";
         authors = [
           "Jeremy Soller <jackpot51@gmail.com>"
         ];
@@ -4012,6 +4150,7 @@ rec {
         version = "1.12.3";
         edition = "2021";
         sha256 = "0xp2q0x7ybmpa5zlgaz00p8zswcirj9h8nry3rxxsdwi9fhm81z1";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rust Project Developers"
           "Andrew Gallant <jamslam@gmail.com>"
@@ -4071,6 +4210,7 @@ rec {
         edition = "2021";
         sha256 = "13xf7hhn4qmgfh784llcp2kzrvljd13lb2b1ca0mwnf15w9d87bf";
         libName = "regex_automata";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rust Project Developers"
           "Andrew Gallant <jamslam@gmail.com>"
@@ -4132,6 +4272,7 @@ rec {
         edition = "2021";
         sha256 = "02jx311ka0daxxc7v45ikzhcl3iydjbbb0mdrpc1xgg8v7c7v2fw";
         libName = "regex_syntax";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Rust Project Developers"
           "Andrew Gallant <jamslam@gmail.com>"
@@ -4148,6 +4289,7 @@ rec {
         version = "1.1.4";
         edition = "2021";
         sha256 = "14511f9yjqh0ix07xjrjpllah3325774gfwi9zpq72sip5jlbzmn";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Dan Gohman <dev@sunfishcode.online>"
           "Jakub Konka <kubkon@jakubkonka.com>"
@@ -4257,6 +4399,7 @@ rec {
         sha256 = "0vfl70jhv72scd9rfqgr2n11m5i9l1acnk684m2w83w0zbqdx75k";
         procMacro = true;
         build = "build/build.rs";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -4267,6 +4410,7 @@ rec {
         version = "1.2.0";
         edition = "2015";
         sha256 = "0jcz9sd47zlsgcnm1hdw0664krxwb5gczlif4qngj2aif8vky54l";
+        license = "MIT OR Apache-2.0";
         authors = [
           "bluss"
         ];
@@ -4279,6 +4423,7 @@ rec {
         version = "1.0.28";
         edition = "2021";
         sha256 = "1kaimrpy876bcgi8bfj0qqfxk77zm9iz2zhn1hp9hj685z854y4a";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -4292,6 +4437,7 @@ rec {
         version = "1.0.228";
         edition = "2021";
         sha256 = "17mf4hhjxv5m90g42wmlbc61hdhlm6j9hwfkpcnd72rpgzm993ls";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -4325,6 +4471,7 @@ rec {
         version = "1.0.228";
         edition = "2021";
         sha256 = "1bb7id2xwx8izq50098s5j2sqrrvk31jbbrjqygyan6ask3qbls1";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -4353,6 +4500,7 @@ rec {
         edition = "2021";
         sha256 = "0y8xm7fvmr2kjcd029g9fijpndh8csv5m20g4bd76w8qschg4h6m";
         procMacro = true;
+        license = "MIT OR Apache-2.0";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -4386,6 +4534,7 @@ rec {
         version = "1.0.150";
         edition = "2021";
         sha256 = "1ffgfhy9kndjnrz8lmy95pr758p2zk8dxv6yi99x0vkkni24w0g8";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -4437,6 +4586,7 @@ rec {
         version = "1.1.1";
         edition = "2024";
         sha256 = "09jzk7i6wihn3d8i3wi4j4n98ghi93c3b8m8k64nxq0ijn3vaqk6";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "serde_core";
@@ -4458,6 +4608,7 @@ rec {
         version = "0.11.0";
         edition = "2024";
         sha256 = "1x15x22c5yf54ac0np5bfqnq5x0hdw4wqzpi48zwn94ma0bsfss4";
+        license = "MIT OR Apache-2.0";
         authors = [
           "RustCrypto Developers"
         ];
@@ -4497,6 +4648,7 @@ rec {
         edition = "2018";
         sha256 = "1xipjr4nqsgw34k7a2cgj9zaasl2ds6jwn89886kww93d32a637l";
         libName = "sharded_slab";
+        license = "MIT";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
         ];
@@ -4515,6 +4667,7 @@ rec {
         version = "1.3.0";
         edition = "2015";
         sha256 = "0r1y6bv26c1scpxvhg2cabimrmwgbp4p3wy6syj9n0c4s3q2znhg";
+        license = "MIT OR Apache-2.0";
         authors = [
           "comex <comexk@gmail.com>"
           "Fenhl <fenhl@fenhl.net>"
@@ -4534,6 +4687,7 @@ rec {
         edition = "2015";
         sha256 = "06vc7pmnki6lmxar3z31gkyg9cw7py5x9g7px70gy2hil75nkny4";
         libName = "signal_hook_registry";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Michal 'vorner' Vaner <vorner@vorner.cz>"
           "Masaki Hara <ackie.h.gmai@gmail.com>"
@@ -4556,6 +4710,7 @@ rec {
         edition = "2018";
         sha256 = "0532ysdwcvzyp2bwpk8qz0hijplcdwpssr5gy5r7qwqqy5z5qgbh";
         libName = "simd_adler32";
+        license = "MIT";
         authors = [
           "Marvin Countryman <me@maar.vin>"
         ];
@@ -4568,6 +4723,7 @@ rec {
         version = "0.4.12";
         edition = "2018";
         sha256 = "1xcwik6s6zbd3lf51kkrcicdq2j4c1fw0yjdai2apy9467i0sy8c";
+        license = "MIT";
         authors = [
           "Carl Lerche <me@carllerche.com>"
         ];
@@ -4582,6 +4738,7 @@ rec {
         version = "1.15.1";
         edition = "2018";
         sha256 = "00xxdxxpgyq5vjnpljvkmy99xij5rxgh913ii1v16kzynnivgcb7";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The Servo Project Developers"
         ];
@@ -4602,6 +4759,7 @@ rec {
         version = "2.0.2";
         edition = "2018";
         sha256 = "17srgkyzswns43cnqcfb1846a8nsna47qj7wrk1rj8c9c3id6fx3";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
         ];
@@ -4652,6 +4810,7 @@ rec {
         edition = "2021";
         sha256 = "06mw449jf0gi25wi2j9vq6gg6101df5b15rbs4n70rrq6afs8a3l";
         libName = "smol_hyper";
+        license = "MIT OR Apache-2.0";
         authors = [
           "John Nunley <dev@notgull.net>"
         ];
@@ -4695,6 +4854,7 @@ rec {
         version = "0.11.1";
         edition = "2015";
         sha256 = "0kzvqlw8hxqb7y598w1s0hxlnmi84sg5vsipp3yg5na5d1rvba3x";
+        license = "MIT";
         authors = [
           "Danny Guo <danny@dannyguo.com>"
           "maxbachmann <oss@maxbachmann.de>"
@@ -4706,6 +4866,7 @@ rec {
         version = "0.27.2";
         edition = "2021";
         sha256 = "1ksb9jssw4bg9kmv9nlgp2jqa4vnsa3y4q9zkppvl952q7vdc8xg";
+        license = "MIT";
         authors = [
           "Peter Glotfelty <peter.glotfelty@microsoft.com>"
         ];
@@ -4723,6 +4884,7 @@ rec {
         edition = "2021";
         sha256 = "19xwikxma0yi70fxkcy1yxcv0ica8gf3jnh5gj936jza8lwcx5bn";
         procMacro = true;
+        license = "MIT";
         authors = [
           "Peter Glotfelty <peter.glotfelty@microsoft.com>"
         ];
@@ -4752,6 +4914,7 @@ rec {
         version = "2.0.117";
         edition = "2021";
         sha256 = "16cv7c0wbn8amxc54n4w15kxlx5ypdmla8s0gxr2l7bv7s0bhrg6";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -4785,6 +4948,7 @@ rec {
         version = "0.4.46";
         edition = "2021";
         sha256 = "0h68bc0y1nma3h2ypj28vxc84msjydlrj8rviqwphg00lvcj2qiz";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -4816,6 +4980,7 @@ rec {
         version = "3.27.0";
         edition = "2021";
         sha256 = "1gblhnyfjsbg9wjg194n89wrzah7jy3yzgnyzhp56f3v9jd7wj9j";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Steven Allen <steven@stebalien.com>"
           "The Rust Project Developers"
@@ -4864,6 +5029,7 @@ rec {
         version = "2.0.18";
         edition = "2021";
         sha256 = "1i7vcmw9900bvsmay7mww04ahahab7wmr8s925xc083rpjybb222";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -4885,6 +5051,7 @@ rec {
         sha256 = "1mf1vrbbimj1g6dvhdgzjmn6q09yflz2b92zs1j9n3k7cxzyxi7b";
         procMacro = true;
         libName = "thiserror_impl";
+        license = "MIT OR Apache-2.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -4909,6 +5076,7 @@ rec {
         version = "1.1.9";
         edition = "2021";
         sha256 = "1191jvl8d63agnq06pcnarivf63qzgpws5xa33hgc92gjjj4c0pn";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -4926,6 +5094,7 @@ rec {
         version = "1.52.3";
         edition = "2021";
         sha256 = "1zpzazypkg61sw91na1m85x5s4rsjym335fwwhwm1hcs70dz1iwg";
+        license = "MIT";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -4963,6 +5132,7 @@ rec {
         version = "1.1.2+spec-1.1.0";
         edition = "2024";
         sha256 = "1vpggpamqhw4852kic7465zsidczsla06wz6friqkkfbhigd3ww1";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "indexmap";
@@ -5027,6 +5197,7 @@ rec {
         version = "1.1.1+spec-1.1.0";
         edition = "2024";
         sha256 = "1mws2mkkf46l7inn77azhm0vdwxngv9vsbhbl0ah33p2c9gzcr9i";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "serde_core";
@@ -5048,6 +5219,7 @@ rec {
         version = "1.1.2+spec-1.1.0";
         edition = "2024";
         sha256 = "09kmzc55a0j21whm290wlf5a8b18a0qc87a1s8sncrckc6wfkax2";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "winnow";
@@ -5068,6 +5240,7 @@ rec {
         version = "1.1.1+spec-1.1.0";
         edition = "2024";
         sha256 = "1nwjhvvrxz8f4ck1qi4xcz2x9qhpci37nrknhxxf9sqk22dsyvbm";
+        license = "MIT OR Apache-2.0";
         features = {
           "default" = [ "std" ];
           "std" = [ "alloc" ];
@@ -5079,6 +5252,7 @@ rec {
         version = "0.1.44";
         edition = "2018";
         sha256 = "006ilqkg1lmfdh3xhg3z762izfwmxcvz0w7m4qx2qajbz9i1drv3";
+        license = "MIT";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
           "Tokio Contributors <team@tokio.rs>"
@@ -5117,6 +5291,7 @@ rec {
         sha256 = "1np8d77shfvz0n7camx2bsf1qw0zg331lra0hxb4cdwnxjjwz43l";
         procMacro = true;
         libName = "tracing_attributes";
+        license = "MIT";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
           "Eliza Weisman <eliza@buoyant.io>"
@@ -5147,6 +5322,7 @@ rec {
         edition = "2018";
         sha256 = "16mpbz6p8vd6j7sf925k9k8wzvm9vdfsjbynbmaxxyq6v7wwm5yv";
         libName = "tracing_core";
+        license = "MIT";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -5178,6 +5354,7 @@ rec {
         edition = "2018";
         sha256 = "1hs77z026k730ij1a9dhahzrl0s073gfa2hm5p0fbl0b80gmz1gf";
         libName = "tracing_log";
+        license = "MIT";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -5210,6 +5387,7 @@ rec {
         edition = "2018";
         sha256 = "06fkr0qhggvrs861d7f74pn3i3a10h5jsp4n70jj9ys5b675fzyb";
         libName = "tracing_subscriber";
+        license = "MIT";
         authors = [
           "Eliza Weisman <eliza@buoyant.io>"
           "David Barsky <me@davidbarsky.com>"
@@ -5291,6 +5469,7 @@ rec {
         sha256 = "14nd81fjnlab9wrgks9h1ls6n2ax57nxjx8dwq1id3v4gdmd1jwn";
         procMacro = true;
         libName = "trait_make";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "proc-macro2";
@@ -5313,6 +5492,7 @@ rec {
         version = "1.20.0";
         edition = "2018";
         sha256 = "1pj35y6q11d3y55gdl6g1h2dfhmybjming0jdi9bh0bpnqm11kj0";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Paho Lurie-Gregg <paho@paholg.com>"
           "Andre Bogus <bogusandre@gmail.com>"
@@ -5329,6 +5509,7 @@ rec {
         edition = "2021";
         sha256 = "0xfs8y1g7syl2iykji8zk5hgfi5jw819f5zsrbaxmlzwsly33r76";
         libName = "unicode_ident";
+        license = "(MIT OR Apache-2.0) AND Unicode-3.0";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -5340,6 +5521,7 @@ rec {
         edition = "2015";
         sha256 = "0lzqaky89fq0bcrh6jj6bhlz37scfd8c7dsj5dq7y32if56c1hgb";
         libName = "unicode_xid";
+        license = "MIT OR Apache-2.0";
         authors = [
           "erick.tryzelaar <erick.tryzelaar@gmail.com>"
           "kwantam <kwantam@gmail.com>"
@@ -5354,6 +5536,7 @@ rec {
         version = "0.2.2";
         edition = "2018";
         sha256 = "088807qwjq46azicqwbhlmzwrbkz7l4hpw43sdkdyyk524vdxaq6";
+        license = "Apache-2.0 OR MIT";
         authors = [
           "Joe Wilm <joe@jwilm.com>"
           "Christian Duerr <contact@christianduerr.com>"
@@ -5367,6 +5550,7 @@ rec {
         version = "0.1.1";
         edition = "2021";
         sha256 = "0r9srp55v7g27s5bg7a2m095fzckrcdca5maih6dy9bay6fflwxs";
+        license = "MIT";
         features = {
           "default" = [ "std" ];
           "derive" = [ "valuable-derive" ];
@@ -5380,6 +5564,7 @@ rec {
         version = "1.0.3+wasi-0.2.9";
         edition = "2021";
         sha256 = "1mi3w855dz99xzjqc4aa8c9q5b6z1y5c963pkk4cvmr6vdr4c1i0";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         dependencies = [
           {
             name = "wit-bindgen";
@@ -5400,6 +5585,7 @@ rec {
         version = "0.4.0+wasi-0.3.0-rc-2026-01-06";
         edition = "2021";
         sha256 = "19dc8p0y2mfrvgk3qw3c3240nfbylv22mvyxz84dqpgai2zzha2l";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         dependencies = [
           {
             name = "wit-bindgen";
@@ -5426,6 +5612,7 @@ rec {
         edition = "2021";
         sha256 = "02flix96brsb2r1i3grnikii302iqpdm337kl3xv5lklz5v4bl1y";
         libName = "wasm_bindgen";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -5478,6 +5665,7 @@ rec {
         sha256 = "1inyl55bvdifx7l60q9wl0ivmw7236jg7jqmcqpxhsx3knq52qci";
         procMacro = true;
         libName = "wasm_bindgen_macro";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -5501,6 +5689,7 @@ rec {
         edition = "2021";
         sha256 = "0pjw5kc2mbfz59agk5l21kh4hxzp94rygdvsnr4f3z6b5hv4g419";
         libName = "wasm_bindgen_macro_support";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -5538,6 +5727,7 @@ rec {
         links = "wasm_bindgen";
         sha256 = "0ds4mmfqvxwc5fp33hn0jblf0f6b4lghrd9mpkls66zic4n9p4ls";
         libName = "wasm_bindgen_shared";
+        license = "MIT OR Apache-2.0";
         authors = [
           "The wasm-bindgen Developers"
         ];
@@ -5555,6 +5745,7 @@ rec {
         edition = "2021";
         sha256 = "06c35kv4h42vk3k51xjz1x6hn3mqwfswycmr6ziky033zvr6a04r";
         libName = "wasm_encoder";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Nick Fitzgerald <fitzgen@gmail.com>"
         ];
@@ -5586,6 +5777,7 @@ rec {
         edition = "2021";
         sha256 = "02f9dhlnryd2l7zf03whlxai5sv26x4spfibjdvc3g9gd8z3a3mv";
         libName = "wasm_metadata";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         dependencies = [
           {
             name = "anyhow";
@@ -5622,6 +5814,7 @@ rec {
         version = "0.244.0";
         edition = "2021";
         sha256 = "1zi821hrlsxfhn39nqpmgzc0wk7ax3dv6vrs5cw6kb0v5v3hgf27";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Yury Delendik <ydelendik@mozilla.com>"
         ];
@@ -5664,6 +5857,7 @@ rec {
         version = "8.0.2";
         edition = "2021";
         sha256 = "0nf4c067qvw5zzk0lr9iadzfnaprr9kkrj0cgmxf8smgmapmz6c1";
+        license = "MIT";
         authors = [
           "Harry Fei <tiziyuanfang@gmail.com>, Jacob Kiesel <jake@bitcrafters.co>"
         ];
@@ -5689,6 +5883,7 @@ rec {
         edition = "2021";
         sha256 = "1swxpv1a8qvn3bkxv8cn663238h2jccq35ff3nsj61jdsca3ms5q";
         libName = "windows_core";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "windows-implement";
@@ -5729,6 +5924,7 @@ rec {
         sha256 = "1psxhmklzcf3wjs4b8qb42qb6znvc142cb5pa74rsyxm1822wgh5";
         procMacro = true;
         libName = "windows_implement";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "proc-macro2";
@@ -5756,6 +5952,7 @@ rec {
         sha256 = "0n73cwrn4247d0axrk7gjp08p34x1723483jxjxjdfkh4m56qc9z";
         procMacro = true;
         libName = "windows_interface";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "proc-macro2";
@@ -5782,6 +5979,7 @@ rec {
         edition = "2021";
         sha256 = "1rag186yfr3xx7piv5rg8b6im2dwcf8zldiflvb22xbzwli5507h";
         libName = "windows_link";
+        license = "MIT OR Apache-2.0";
 
       };
       "windows-result" = rec {
@@ -5790,6 +5988,7 @@ rec {
         edition = "2021";
         sha256 = "1d9yhmrmmfqh56zlj751s5wfm9a2aa7az9rd7nn5027nxa4zm0bp";
         libName = "windows_result";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "windows-link";
@@ -5808,6 +6007,7 @@ rec {
         edition = "2021";
         sha256 = "14bhng9jqv4fyl7lqjz3az7vzh8pw0w4am49fsqgcz67d67x0dvq";
         libName = "windows_strings";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "windows-link";
@@ -5826,6 +6026,7 @@ rec {
         edition = "2021";
         sha256 = "1z7k3y9b6b5h52kid57lvmvm05362zv1v8w0gc7xyv5xphlp44xf";
         libName = "windows_sys";
+        license = "MIT OR Apache-2.0";
         dependencies = [
           {
             name = "windows-link";
@@ -6087,6 +6288,7 @@ rec {
         version = "1.0.3";
         edition = "2021";
         sha256 = "1wajycd3krn6h699vydjv7hm0ll5l31p899qzpk59y2is74y34h5";
+        license = "MIT";
         features = {
           "ascii" = [ "parser" ];
           "binary" = [ "parser" ];
@@ -6104,6 +6306,7 @@ rec {
         edition = "2024";
         sha256 = "19fazgch8sq5cvjv3ynhhfh5d5x08jq2pkw8jfb05vbcyqcr496p";
         libName = "wit_bindgen";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -6131,6 +6334,7 @@ rec {
         edition = "2024";
         sha256 = "0vjk2jb593ri9k1aq4iqs2si9mrw5q46wxnn78im7hm7hx799gqy";
         libName = "wit_bindgen";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -6151,6 +6355,7 @@ rec {
         edition = "2024";
         sha256 = "1p2jszqsqbx8k7y8nwvxg65wqzxjm048ba5phaq8r9iy9ildwqga";
         libName = "wit_bindgen_core";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -6179,6 +6384,7 @@ rec {
         edition = "2024";
         sha256 = "08bzn5fsvkb9x9wyvyx98qglknj2075xk1n7c5jxv15jykh6didp";
         libName = "wit_bindgen_rust";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -6230,6 +6436,7 @@ rec {
         sha256 = "0ymizapzv2id89igxsz2n587y2hlfypf6n8kyp68x976fzyrn3qc";
         procMacro = true;
         libName = "wit_bindgen_rust_macro";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -6274,6 +6481,7 @@ rec {
         edition = "2021";
         sha256 = "1clwxgsgdns3zj2fqnrjcp8y5gazwfa1k0sy5cbk0fsmx4hflrlx";
         libName = "wit_component";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Peter Huene <peter@huene.dev>"
         ];
@@ -6358,6 +6566,7 @@ rec {
         edition = "2021";
         sha256 = "0dm7avvdxryxd5b02l0g5h6933z1cw5z0d4wynvq2cywq55srj7c";
         libName = "wit_parser";
+        license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -6434,6 +6643,7 @@ rec {
         version = "1.6.1";
         edition = "2021";
         sha256 = "0ml1mb43gqasawillql6b344m0zgq8mz0isi11wj8vbg43a5mr1j";
+        license = "MIT OR Apache-2.0";
         authors = [
           "Steven Allen <steven@stebalien.com>"
         ];
@@ -6461,6 +6671,7 @@ rec {
         version = "0.8.48";
         edition = "2021";
         sha256 = "1sb8plax8jbrsng1jdval7bdhk7hhrx40dz3hwh074k6knzkgm7f";
+        license = "BSD-2-Clause OR Apache-2.0 OR MIT";
         authors = [
           "Joshua Liebow-Feeser <joshlf@google.com>"
           "Jack Wrenn <jswrenn@amazon.com>"
@@ -6499,6 +6710,7 @@ rec {
         sha256 = "1m5s0g92cxggqc74j83k1priz24k3z93sj5gadppd20p9c4cvqvh";
         procMacro = true;
         libName = "zerocopy_derive";
+        license = "BSD-2-Clause OR Apache-2.0 OR MIT";
         authors = [
           "Joshua Liebow-Feeser <joshlf@google.com>"
           "Jack Wrenn <jswrenn@amazon.com>"
@@ -6532,6 +6744,7 @@ rec {
         version = "1.0.21";
         edition = "2021";
         sha256 = "1amb5i6gz7yjb0dnmz5y669674pqmwbj44p4yfxfv2ncgvk8x15q";
+        license = "MIT";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -6867,7 +7080,15 @@ rec {
                 )
                 crateConfigs;
               target = makeTarget pkgs.stdenv.hostPlatform;
-              build = mkBuiltByPackageIdByPkgs pkgs.buildPackages;
+              # Build-time dependency graph (for proc-macros and build
+              # dependencies). When not cross-compiling it equals the host
+              # graph, so reuse `self`; otherwise build it for
+              # `pkgs.buildPackages`.
+              build =
+                if pkgs.stdenv.buildPlatform.config == pkgs.stdenv.hostPlatform.config then
+                  self
+                else
+                  mkBuiltByPackageIdByPkgs pkgs.buildPackages;
             };
           in
           self;
@@ -6883,38 +7104,35 @@ rec {
             devDependencies = lib.optionals (runTests && packageId == rootPackageId) (
               crateConfig'.devDependencies or [ ]
             );
-            dependencies = dependencyDerivations {
+            # Enabled (platform- and feature-filtered) dependency lists, reused
+            # for both derivation wiring and the crate renames below.
+            enabledDependencies = filterEnabledDependencies {
               inherit features;
               inherit (self) target;
-              buildByPackageId =
-                depPackageId:
-                # proc_macro crates must be compiled for the build architecture
-                if crateConfigs.${depPackageId}.procMacro or false then
-                  self.build.crates.${depPackageId}
-                else
-                  self.crates.${depPackageId};
               dependencies = (crateConfig.dependencies or [ ]) ++ devDependencies;
             };
-            buildDependencies = dependencyDerivations {
+            enabledBuildDependencies = filterEnabledDependencies {
               inherit features;
               inherit (self.build) target;
-              buildByPackageId = depPackageId: self.build.crates.${depPackageId};
               dependencies = crateConfig.buildDependencies or [ ];
             };
+            dependencies = map
+              (
+                dependency:
+                # proc_macro crates must be compiled for the build architecture
+                if crateConfigs.${dependency.packageId}.procMacro or false then
+                  self.build.crates.${dependency.packageId}
+                else
+                  self.crates.${dependency.packageId}
+              )
+              enabledDependencies;
+            buildDependencies = map
+              (dependency: self.build.crates.${dependency.packageId})
+              enabledBuildDependencies;
+            # Order (build dependencies, then normal dependencies) feeds the
+            # crateRenames grouping below.
             dependenciesWithRenames =
-              let
-                buildDeps = filterEnabledDependencies {
-                  inherit features;
-                  inherit (self) target;
-                  dependencies = crateConfig.dependencies or [ ] ++ devDependencies;
-                };
-                hostDeps = filterEnabledDependencies {
-                  inherit features;
-                  inherit (self.build) target;
-                  dependencies = crateConfig.buildDependencies or [ ];
-                };
-              in
-              lib.filter (d: d ? "rename") (hostDeps ++ buildDeps);
+              lib.filter (d: d ? "rename") (enabledBuildDependencies ++ enabledDependencies);
             # Crate renames have the form:
             #
             # {
@@ -7086,6 +7304,17 @@ rec {
     corresponding feature sets are merged. Features in rust are additive.
   */
   mergePackageFeatures =
+    args: builtins.mapAttrs (_packageId: builtins.attrNames) (mergePackageFeaturesImpl args);
+
+  /*
+    Core of the feature-resolution fixpoint. The cache (`featuresByPackageId`)
+    maps each packageId to a feature *set* (an attrset `feature -> 1`) rather
+    than a sorted list, so the fold merges with `//` and detects convergence
+    with attrset equality instead of re-concatenating and re-sorting the
+    accumulated feature list on every step. `mergePackageFeatures` projects the
+    result back to canonical sorted lists.
+  */
+  mergePackageFeaturesImpl =
     { crateConfigs ? crates
     , packageId
     , rootPackageId ? packageId
@@ -7134,14 +7363,15 @@ rec {
               cache:
               { packageId, features }:
               let
-                cacheFeatures = cache.${packageId} or [ ];
-                combinedFeatures = sortedUnique (cacheFeatures ++ features);
+                cacheFeatures = cache.${packageId} or { };
+                # `features` is the (small) incoming list; merge it into the set.
+                combinedFeatures = cacheFeatures // listToSet features;
               in
-              if cache ? ${packageId} && cache.${packageId} == combinedFeatures then
+              if cache ? ${packageId} && cacheFeatures == combinedFeatures then
                 cache
               else
-                mergePackageFeatures {
-                  features = combinedFeatures;
+                mergePackageFeaturesImpl {
+                  features = builtins.attrNames combinedFeatures;
                   featuresByPackageId = cache;
                   inherit
                     crateConfigs
@@ -7154,8 +7384,8 @@ rec {
             );
         cacheWithSelf =
           let
-            cacheFeatures = featuresByPackageId.${packageId} or [ ];
-            combinedFeatures = sortedUnique (cacheFeatures ++ enabledFeatures);
+            cacheFeatures = featuresByPackageId.${packageId} or { };
+            combinedFeatures = cacheFeatures // listToSet enabledFeatures;
           in
           featuresByPackageId
           // {
@@ -7182,27 +7412,31 @@ rec {
       assert (builtins.isList features);
       assert (builtins.isAttrs target);
 
+      let
+        # Identical for every dep in this call; build the predicate arg once.
+        targetArgs = { inherit features target; };
+      in
       lib.filter
         (
           dep:
-          let
-            targetFunc = dep.target or (features: true);
-          in
-          targetFunc { inherit features target; }
+          (dep.target or (features: true)) targetArgs
           && (!(dep.optional or false) || builtins.any (doesFeatureEnableDependency dep) features)
         )
         dependencies;
 
   # Returns whether the given feature should enable the given dependency.
   doesFeatureEnableDependency =
-    dependency: feature:
+    dependency:
+    # Callers partially apply this once per dependency, then test every feature,
+    # so hoist the dep-invariant strings out of the per-feature comparison.
     let
       name = dependency.rename or dependency.name;
+      depName = "dep:" + name;
       prefix = "${name}/";
       len = builtins.stringLength prefix;
-      startsWithPrefix = builtins.substring 0 len feature == prefix;
     in
-    feature == name || feature == "dep:" + name || startsWithPrefix;
+    feature:
+    feature == name || feature == depName || builtins.substring 0 len feature == prefix;
 
   /*
     Returns the expanded features for the given inputFeatures by applying the
@@ -7216,29 +7450,24 @@ rec {
       assert (builtins.isAttrs featureMap);
       assert (builtins.isList inputFeatures);
       let
+        # Transitive closure of `inputFeatures` under `featureMap`. `seen`
+        # tracks already-expanded features so each is visited at most once;
+        # this also breaks feature cycles (issue #209).
         expandFeaturesNoCycle =
-          oldSeen: inputFeatures:
-          if inputFeatures != [ ] then
-            let
-              # The feature we're currently expanding.
-              feature = builtins.head inputFeatures;
-              # All the features we've seen/expanded so far, including the one
-              # we're currently processing.
-              seen = oldSeen // {
-                ${feature} = 1;
-              };
-              # Expand the feature but be careful to not re-introduce a feature
-              # that we've already seen: this can easily cause a cycle, see issue
-              # #209.
-              enables = builtins.filter (f: !(seen ? "${f}")) (featureMap."${feature}" or [ ]);
-            in
-            [ feature ] ++ (expandFeaturesNoCycle seen (builtins.tail inputFeatures ++ enables))
-          # No more features left, nothing to expand to.
-          else
-            [ ];
-        outFeatures = expandFeaturesNoCycle { } inputFeatures;
+          seen: features:
+          builtins.foldl'
+            (
+              acc: feature:
+              if acc ? ${feature} then
+                acc
+              else
+                expandFeaturesNoCycle (acc // { ${feature} = 1; }) (featureMap.${feature} or [ ])
+            )
+            seen
+            features;
+        seen = expandFeaturesNoCycle { } inputFeatures;
       in
-      sortedUnique outFeatures;
+      sortedUnique (builtins.attrNames seen);
 
   /*
     This function adds optional dependencies as features if they are enabled
@@ -7297,16 +7526,19 @@ rec {
       in
       defaultOrNil ++ explicitFeatures ++ additionalDependencyFeatures;
 
+  # Builds a feature set (attrset `feature -> 1`) from a list of feature names.
+  listToSet =
+    features:
+    builtins.listToAttrs (map (feature: { name = feature; value = 1; }) features);
+
   # Sorts and removes duplicates from a list of strings.
   sortedUnique =
     features:
       assert (builtins.isList features);
-      assert (builtins.all builtins.isString features);
-      let
-        outFeaturesSet = lib.foldl (set: feature: set // { "${feature}" = 1; }) { } features;
-        outFeaturesUnique = builtins.attrNames outFeaturesSet;
-      in
-      builtins.sort (a: b: a < b) outFeaturesUnique;
+      # attrNames returns keys in ascending string order, so the result is
+      # sorted and deduplicated. The feature-merge fixpoint relies on this
+      # canonical order to detect convergence.
+      builtins.attrNames (listToSet features);
 
   deprecationWarning =
     message: value:
