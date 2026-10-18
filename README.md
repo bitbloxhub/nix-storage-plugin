@@ -2,6 +2,12 @@
 
 [`nix-snapshotter`](https://github.com/pdtpartners/nix-snapshotter) but for Podman, CRI-O, and any other `container-libs/storage` based tools.
 
+## Why the container-libs patch is needed
+
+Nix-snapshotter layers contain a small tar listing Nix store paths rather than copies of store contents. This project uses a FUSE Additional Layer Store (ALS) and local registry adapter to resolve those paths from the host's Nix store.
+
+`containers/storage` normally looks up ALS entries by TOC digest. Nix-snapshotter layers lack that digest, so the [`als-first` branch](https://github.com/bitbloxhub/container-libs/tree/als-first) makes storage search the ALS first and match compressed-layer or uncompressed-diff digests too. Consumers must be built against this branch. See [container-libs issue #747](https://github.com/podman-container-tools/container-libs/issues/747).
+
 ## NixOS
 
 Use overlay plus module:
@@ -30,7 +36,7 @@ services.nix-storage-plugin = {
 
 ## Manual patching builds
 
-If not using overlay, patch your container consumer against [`bitbloxhub/container-libs`](https://github.com/bitbloxhub/container-libs) `als-first`:
+If not using the overlay, patch your container consumer against [`bitbloxhub/container-libs`](https://github.com/bitbloxhub/container-libs) `als-first`:
 
 ```gomod
 replace (
